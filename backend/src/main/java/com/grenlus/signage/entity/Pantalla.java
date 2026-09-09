@@ -60,7 +60,7 @@ public class Pantalla {
     @Column(nullable = false)
     private Boolean activo;
 
-    // TODO: agregar cuando Sucursal exista en develop (la hace el companiero).
+    // TODO: agregar cuando Sucursal exista en develop.
     // Segun la guia la relacion es obligatoria: N Pantallas -> 1 Sucursal.
     // @ManyToOne
     // @JoinColumn(name = "sucursal_id", nullable = false)
