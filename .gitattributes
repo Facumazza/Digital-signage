@@ -1,0 +1,23 @@
+# Normaliza los fines de linea: en el repo siempre LF.
+* text=auto eol=lf
+
+# Scripts que DEBEN quedar en LF para poder ejecutarse en Linux/Mac.
+mvnw text eol=lf
+gradlew text eol=lf
+*.sh text eol=lf
+
+# Scripts de Windows que deben quedar en CRLF.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binarios: que git no intente convertir nada.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.mp4 binary
+*.jar binary
+*.apk binary
+*.keystore binary
