@@ -67,9 +67,12 @@ public class PlaylistContenidoService {
         );
         playlistContenido.setActivo(true);
 
-        return playlistContenidoRepository.save(
-                playlistContenido
-        );
+        PlaylistContenido guardado =
+                playlistContenidoRepository.save(playlistContenido);
+
+        aumentarVersion(playlist);
+
+        return guardado;
     }
 
     public PlaylistContenido actualizar(
@@ -86,9 +89,14 @@ public class PlaylistContenidoService {
         );
         playlistContenido.setActivo(datos.getActivo());
 
-        return playlistContenidoRepository.save(
-                playlistContenido
-        );
+        PlaylistContenido actualizado =
+                playlistContenidoRepository.save(
+                        playlistContenido
+                );
+
+        aumentarVersion(playlistContenido.getPlaylist());
+
+        return actualizado;
     }
 
     public void eliminar(Long id) {
@@ -96,8 +104,21 @@ public class PlaylistContenidoService {
         PlaylistContenido playlistContenido =
                 buscarPorId(id);
 
-        playlistContenidoRepository.delete(
-                playlistContenido
-        );
+        Playlist playlist = playlistContenido.getPlaylist();
+
+        playlistContenidoRepository.delete(playlistContenido);
+
+        aumentarVersion(playlist);
+    }
+
+    private void aumentarVersion(Playlist playlist) {
+
+        if (playlist.getVersion() == null) {
+            playlist.setVersion(1L);
+        } else {
+            playlist.setVersion(playlist.getVersion() + 1);
+        }
+
+        playlistRepository.save(playlist);
     }
 }
