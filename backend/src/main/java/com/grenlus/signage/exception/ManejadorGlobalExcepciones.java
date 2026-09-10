@@ -28,6 +28,11 @@ public class ManejadorGlobalExcepciones {
         return construir(HttpStatus.NOT_FOUND, ex.getMessage(), null);
     }
 
+    @ExceptionHandler(NoAutorizadoException.class)
+    public ResponseEntity<ErrorResponseDto> noAutorizado(NoAutorizadoException ex) {
+        return construir(HttpStatus.UNAUTHORIZED, ex.getMessage(), null);
+    }
+
     @ExceptionHandler(ReglaNegocioException.class)
     public ResponseEntity<ErrorResponseDto> reglaViolada(ReglaNegocioException ex) {
         return construir(HttpStatus.CONFLICT, ex.getMessage(), null);

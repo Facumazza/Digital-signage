@@ -4,9 +4,11 @@ import com.grenlus.signage.dtos.ContenidoPlayerDto;
 import com.grenlus.signage.dtos.PlayerConfigResponse;
 import com.grenlus.signage.entity.Pantalla;
 import com.grenlus.signage.entity.Playlist;
+import com.grenlus.signage.exception.NoAutorizadoException;
 import com.grenlus.signage.exception.RecursoNoEncontradoException;
 import com.grenlus.signage.repository.PantallaRepository;
 import com.grenlus.signage.repository.PlaylistContenidoRepository;
+import com.grenlus.signage.security.TokensPantalla;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,11 +35,9 @@ public class PlayerService {
     }
 
     @Transactional(readOnly = true)
-    public PlayerConfigResponse obtenerConfiguracion(String codigo) {
+    public PlayerConfigResponse obtenerConfiguracion(String codigo, String token) {
 
-        Pantalla pantalla = pantallaRepository.findByCodigo(codigo)
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "No hay ninguna pantalla con el codigo " + codigo));
+        Pantalla pantalla = autenticar(codigo, token);
 
         Playlist playlist = pantalla.getPlaylist();
 
@@ -76,11 +76,22 @@ public class PlayerService {
      * ultimaConexion, de donde el panel deriva ONLINE/OFFLINE.
      */
     @Transactional
-    public void heartbeat(String codigo) {
-        Pantalla pantalla = pantallaRepository.findByCodigo(codigo)
-                .orElseThrow(() -> new RecursoNoEncontradoException(
-                        "No hay ninguna pantalla con el codigo " + codigo));
+    public void heartbeat(String codigo, String token) {
+        autenticar(codigo, token).setUltimaConexion(LocalDateTime.now());
+    }
 
-        pantalla.setUltimaConexion(LocalDateTime.now());
+    /**
+     * Identifica al dispositivo. El codigo dice quien dice ser; el token lo
+     * demuestra. Se responde lo mismo si la pantalla no existe o si el token
+     * esta mal: distinguirlos permitiria averiguar que codigos existen.
+     */
+    private Pantalla autenticar(String codigo, String token) {
+        Pantalla pantalla = pantallaRepository.findByCodigo(codigo)
+                .orElseThrow(() -> new NoAutorizadoException("Codigo o token invalido"));
+
+        if (!TokensPantalla.coincide(token, pantalla.getTokenHash())) {
+            throw new NoAutorizadoException("Codigo o token invalido");
+        }
+        return pantalla;
     }
 }

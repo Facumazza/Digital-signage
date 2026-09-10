@@ -2,6 +2,7 @@ package com.grenlus.signage.service;
 
 import com.grenlus.signage.dtos.AsignarPlaylistDto;
 import com.grenlus.signage.dtos.PantallaRequestDto;
+import com.grenlus.signage.dtos.PantallaCreadaDto;
 import com.grenlus.signage.dtos.PantallaResponseDto;
 import com.grenlus.signage.entity.Pantalla;
 import com.grenlus.signage.entity.Playlist;
@@ -10,6 +11,7 @@ import com.grenlus.signage.exception.RecursoNoEncontradoException;
 import com.grenlus.signage.exception.ReglaNegocioException;
 import com.grenlus.signage.repository.PantallaRepository;
 import com.grenlus.signage.repository.PlaylistRepository;
+import com.grenlus.signage.security.TokensPantalla;
 import com.grenlus.signage.repository.SucursalRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,8 +41,12 @@ public class PantallaService {
         this.playlistRepository = playlistRepository;
     }
 
+    /**
+     * Da de alta la pantalla y le genera su token. El token vuelve en claro
+     * solo en esta respuesta: en la base queda su hash.
+     */
     @Transactional
-    public PantallaResponseDto crear(PantallaRequestDto request) {
+    public PantallaCreadaDto crear(PantallaRequestDto request) {
         if (pantallaRepository.existsByCodigo(request.codigo())) {
             throw new ReglaNegocioException(
                     "Ya existe una pantalla con el codigo " + request.codigo());
@@ -48,12 +54,15 @@ public class PantallaService {
         Sucursal sucursal = sucursalRepository.findById(request.sucursalId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Sucursal", request.sucursalId()));
 
+        String token = TokensPantalla.generar();
         Pantalla pantalla = Pantalla.builder()
                 .codigo(request.codigo())
                 .nombre(request.nombre())
                 .sucursal(sucursal)
                 .build();
-        return toResponse(pantallaRepository.save(pantalla));
+        pantalla.setTokenHash(TokensPantalla.hashear(token));
+
+        return new PantallaCreadaDto(toResponse(pantallaRepository.save(pantalla)), token);
     }
 
     @Transactional(readOnly = true)
@@ -103,6 +112,17 @@ public class PantallaService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Playlist", request.playlistId()));
         pantalla.setPlaylist(playlist);
         return toResponse(pantalla);
+    }
+
+    /**
+     * Token nuevo, por ejemplo si se reemplaza el Android o se sospecha que se
+     * filtro. El anterior deja de servir en el acto.
+     */
+    @Transactional
+    public String regenerarToken(Long id) {
+        String token = TokensPantalla.generar();
+        obtener(id).setTokenHash(TokensPantalla.hashear(token));
+        return token;
     }
 
     @Transactional

@@ -24,7 +24,7 @@ services y controllers, más el endpoint del player y autenticación.
 | 3 — Playlist + versionado | ✅ |
 | 4 — API del player (config + heartbeat) | ✅ |
 | 5 a 9 — Android, React, prueba remota, robustez | ❌ no arrancados |
-| 10 — Seguridad JWT y roles | ✅ (falta cerrar el player) |
+| 10 — Seguridad: JWT, roles y tokens de dispositivo | ✅ |
 | 11 — Producto | ❌ |
 
 **Lo que falta para el MVP no es backend:** son el player Android y el panel
@@ -82,8 +82,9 @@ git checkout develop && git pull
 
 | Qué | Por qué importa |
 | --- | --- |
-| `/api/player/**` está abierto | Cualquiera que sepa un código `GRN-XXXX` lee la config de esa pantalla. **Cerrar antes de exponer a Internet** |
 | El secreto JWT está en el repo | Es un valor de desarrollo. En producción va por `SIGNAGE_JWT_SECRETO` |
+| El token de pantalla viaja en texto plano | Va en un header, así que **sin HTTPS cualquiera en la red lo lee**. Obligatorio antes de la Etapa 8 |
+| Un token de pantalla no expira | Vale hasta que se regenere a mano. Alcanza para el MVP; una rotación automática es de V2 |
 | Sin índices en las columnas FK | PostgreSQL no los crea solo. Se va a notar cuando haya volumen (Etapa 9) |
 | `ddl-auto=update` | No borra columnas ni renombra. Producción necesita migraciones versionadas (Etapa 9) |
 | Sin tests de services ni controllers | Los 5 que hay cubren solo el mapeo de entidades |

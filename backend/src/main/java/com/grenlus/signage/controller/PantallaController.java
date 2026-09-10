@@ -1,6 +1,7 @@
 package com.grenlus.signage.controller;
 
 import com.grenlus.signage.dtos.AsignarPlaylistDto;
+import com.grenlus.signage.dtos.PantallaCreadaDto;
 import com.grenlus.signage.dtos.PantallaRequestDto;
 import com.grenlus.signage.dtos.PantallaResponseDto;
 import com.grenlus.signage.service.PantallaService;
@@ -21,10 +22,24 @@ public class PantallaController {
         this.pantallaService = pantallaService;
     }
 
+    /**
+     * El token de acceso vuelve solo en esta respuesta. Es lo que hay que
+     * cargar en el dispositivo Android al instalarlo.
+     */
     @PostMapping
-    public ResponseEntity<PantallaResponseDto> crear(@Valid @RequestBody PantallaRequestDto request) {
-        PantallaResponseDto creada = pantallaService.crear(request);
-        return ResponseEntity.created(URI.create("/api/pantallas/" + creada.id())).body(creada);
+    public ResponseEntity<PantallaCreadaDto> crear(@Valid @RequestBody PantallaRequestDto request) {
+        PantallaCreadaDto creada = pantallaService.crear(request);
+        return ResponseEntity
+                .created(URI.create("/api/pantallas/" + creada.pantalla().id()))
+                .body(creada);
+    }
+
+    /** Token nuevo para una pantalla existente. El anterior deja de servir. */
+    @PostMapping("/{id}/token")
+    public java.util.Map<String, String> regenerarToken(@PathVariable Long id) {
+        return java.util.Map.of(
+                "tokenAcceso", pantallaService.regenerarToken(id),
+                "aviso", "Guarda este token ahora: no se vuelve a mostrar.");
     }
 
     @GetMapping

@@ -60,6 +60,13 @@ public class Pantalla {
     @Column(nullable = false)
     private Boolean activo;
 
+    /** Hash del token con el que el player se identifica. Nullable solo por las
+     *  pantallas dadas de alta antes de que existiera: esas tienen que
+     *  regenerarlo. Nunca sale por la API. */
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    @Column(name = "token_hash", length = 64)
+    private String tokenHash;
+
 
     @ManyToOne
     @JoinColumn(name = "sucursal_id", nullable = false)

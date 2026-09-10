@@ -40,9 +40,11 @@ public class SecurityConfig {
                         // Login: tiene que ser publico o nadie puede entrar nunca.
                         .requestMatchers("/api/auth/**").permitAll()
 
-                        // El player Android no puede hacer login con formulario.
-                        // TODO Etapa 10: token por dispositivo, entregado al dar
-                        // de alta la pantalla. Hoy queda abierto.
+                        // El player no usa JWT: un televisor no puede completar un
+                        // formulario de login. Se autentica con su propio token en
+                        // el header X-Pantalla-Token, que valida PlayerService.
+                        // Queda fuera de la cadena de Spring Security a proposito,
+                        // no sin proteccion.
                         .requestMatchers("/api/player/**").permitAll()
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
