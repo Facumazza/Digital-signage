@@ -62,3 +62,30 @@ export interface ErrorApi {
   mensaje: string;
   campos?: Record<string, string>;
 }
+
+export interface Contenido {
+  id: number;
+  nombre: string;
+  tipo: TipoContenido;
+  /** Ruta relativa de descarga. La ruta en disco del servidor no se expone. */
+  url: string;
+  nombreArchivo: string;
+  tamanoBytes: number;
+  duracionSegundos: number | null;
+  fechaSubida: string;
+  activo: boolean;
+  clienteId: number;
+}
+
+/** Un contenido dentro de una playlist, con su posicion y duracion. */
+export interface ItemPlaylist {
+  id: number;
+  playlistId: number;
+  orden: number;
+  duracionVisualizacion: number | null;
+  activo: boolean;
+  contenidoId: number;
+  contenidoNombre: string;
+  tipo: TipoContenido;
+  url: string;
+}

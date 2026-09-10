@@ -2,8 +2,10 @@ package com.grenlus.signage.service;
 
 import com.grenlus.signage.dtos.ContenidoPlayerDto;
 import com.grenlus.signage.dtos.PlayerConfigResponse;
+import com.grenlus.signage.entity.Contenido;
 import com.grenlus.signage.entity.Pantalla;
 import com.grenlus.signage.entity.Playlist;
+import com.grenlus.signage.entity.PlaylistContenido;
 import com.grenlus.signage.exception.NoAutorizadoException;
 import com.grenlus.signage.exception.RecursoNoEncontradoException;
 import com.grenlus.signage.repository.PantallaRepository;
@@ -60,7 +62,8 @@ public class PlayerService {
                                 // La url de descarga, NO rutaArchivo: esa es la
                                 // ruta interna del disco del servidor y el
                                 // Android no puede pedirla por HTTP.
-                                "/api/contenidos/" + item.getContenido().getId() + "/archivo",
+                                "/api/player/" + pantalla.getCodigo() + "/contenidos/"
+                                        + item.getContenido().getId() + "/archivo",
                                 item.getDuracionVisualizacion()))
                         .toList();
 
@@ -69,6 +72,36 @@ public class PlayerService {
                 playlist.getId(),
                 playlist.getVersion(),
                 contenidos);
+    }
+
+    /**
+     * Entrega el archivo de un contenido al player.
+     *
+     * Existe aparte de /api/contenidos/{id}/archivo porque aquel exige el JWT
+     * del panel, y el Android no tiene uno: se autentica con su token de
+     * pantalla. Sin esto el player podia leer su configuracion pero no
+     * descargar nada de lo que esa configuracion le indicaba.
+     *
+     * Ademas solo entrega contenidos que esten en la playlist de esa pantalla:
+     * un dispositivo no tiene por que poder bajar los archivos de otro cliente.
+     */
+    @Transactional(readOnly = true)
+    public Contenido contenidoParaDescargar(String codigo, String token, Long contenidoId) {
+        Pantalla pantalla = autenticar(codigo, token);
+        Playlist playlist = pantalla.getPlaylist();
+
+        if (playlist == null) {
+            throw new RecursoNoEncontradoException(
+                    "La pantalla no tiene contenido asignado");
+        }
+
+        return playlistContenidoRepository.findByPlaylistIdOrderByOrdenAsc(playlist.getId())
+                .stream()
+                .map(PlaylistContenido::getContenido)
+                .filter(c -> c.getId().equals(contenidoId))
+                .findFirst()
+                .orElseThrow(() -> new RecursoNoEncontradoException(
+                        "El contenido " + contenidoId + " no esta en la playlist de esta pantalla"));
     }
 
     /**

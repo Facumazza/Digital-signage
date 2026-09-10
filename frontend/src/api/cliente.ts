@@ -70,6 +70,31 @@ async function pedir<T>(ruta: string, opciones: RequestInit = {}): Promise<T> {
   return respuesta.json() as Promise<T>;
 }
 
+/**
+ * La subida es multipart, no JSON: el archivo viaja como parte binaria.
+ *
+ * No se pone Content-Type a mano a propósito: el navegador tiene que armarlo
+ * él, porque incluye el "boundary" que separa las partes del cuerpo.
+ */
+async function subir<T>(ruta: string, formulario: FormData): Promise<T> {
+  const token = leerToken();
+
+  const respuesta = await fetch(`${BASE}${ruta}`, {
+    method: "POST",
+    body: formulario,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!respuesta.ok) {
+    const cuerpo = (await respuesta.json().catch(() => null)) as ErrorApi | null;
+    throw new ErrorHttp(
+      respuesta.status,
+      cuerpo?.mensaje ?? `Error ${respuesta.status}`,
+    );
+  }
+  return respuesta.json() as Promise<T>;
+}
+
 export const api = {
   get: <T>(ruta: string) => pedir<T>(ruta),
 
@@ -78,4 +103,8 @@ export const api = {
 
   put: <T>(ruta: string, cuerpo?: unknown) =>
     pedir<T>(ruta, { method: "PUT", body: JSON.stringify(cuerpo ?? {}) }),
+
+  del: (ruta: string) => pedir<void>(ruta, { method: "DELETE" }),
+
+  subir,
 };

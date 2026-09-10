@@ -1,0 +1,27 @@
+import { NavLink, Outlet } from "react-router-dom";
+import { useSesion } from "../auth/SesionContext";
+
+/** Marco comun del panel: navegacion y sesion. */
+export default function Layout() {
+  const { sesion, salir } = useSesion();
+
+  return (
+    <div className="contenedor">
+      <header className="barra">
+        <nav className="nav">
+          <NavLink to="/pantallas">Pantallas</NavLink>
+          <NavLink to="/contenidos">Contenidos</NavLink>
+          <NavLink to="/playlists">Playlists</NavLink>
+        </nav>
+        <div className="barra-derecha">
+          <span className="sutil">{sesion?.email}</span>
+          <button className="secundario" onClick={salir}>
+            Salir
+          </button>
+        </div>
+      </header>
+
+      <Outlet />
+    </div>
+  );
+}

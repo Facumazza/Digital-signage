@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ErrorHttp } from "../api/cliente";
 import type { Pantalla, Playlist, Sucursal } from "../api/tipos";
-import { useSesion } from "../auth/SesionContext";
 
 /**
  * Detalle de sucursal: todas las pantallas de un local, su estado y que
@@ -11,8 +10,6 @@ import { useSesion } from "../auth/SesionContext";
  * permite controlar rapido todas las TVs de una sucursal.
  */
 export default function Pantallas() {
-  const { sesion, salir } = useSesion();
-
   const [sucursales, setSucursales] = useState<Sucursal[]>([]);
   const [sucursalId, setSucursalId] = useState<number | null>(null);
   const [pantallas, setPantallas] = useState<Pantalla[]>([]);
@@ -78,19 +75,11 @@ export default function Pantallas() {
     }
   }
 
-  if (cargando) return <p className="sutil contenedor">Cargando…</p>;
+  if (cargando) return <p className="sutil">Cargando…</p>;
 
   return (
-    <div className="contenedor">
-      <header className="barra">
-        <div>
-          <h1>Pantallas</h1>
-          <p className="sutil">{sesion?.email}</p>
-        </div>
-        <button className="secundario" onClick={salir}>
-          Salir
-        </button>
-      </header>
+    <>
+      <h1>Pantallas</h1>
 
       {error && <p className="error">{error}</p>}
 
@@ -165,7 +154,7 @@ export default function Pantallas() {
           )}
         </>
       )}
-    </div>
+    </>
   );
 }
 

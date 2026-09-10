@@ -1,7 +1,10 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { ProveedorSesion, useSesion } from "./auth/SesionContext";
+import Layout from "./componentes/Layout";
 import Login from "./paginas/Login";
 import Pantallas from "./paginas/Pantallas";
+import Contenidos from "./paginas/Contenidos";
+import Playlists from "./paginas/Playlists";
 import type { ReactNode } from "react";
 
 /** Manda al login si no hay sesion. */
@@ -16,14 +19,19 @@ export default function App() {
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Login />} />
+
           <Route
-            path="/pantallas"
             element={
               <Protegida>
-                <Pantallas />
+                <Layout />
               </Protegida>
             }
-          />
+          >
+            <Route path="/pantallas" element={<Pantallas />} />
+            <Route path="/contenidos" element={<Contenidos />} />
+            <Route path="/playlists" element={<Playlists />} />
+          </Route>
+
           <Route path="*" element={<Navigate to="/pantallas" replace />} />
         </Routes>
       </BrowserRouter>
