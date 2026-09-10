@@ -1,5 +1,9 @@
 package com.grenlus.signage.service;
 
+import com.grenlus.signage.exception.ReglaNegocioException;
+
+import com.grenlus.signage.exception.RecursoNoEncontradoException;
+
 import com.grenlus.signage.entity.Contenido;
 import com.grenlus.signage.entity.Playlist;
 import com.grenlus.signage.entity.PlaylistContenido;
@@ -37,7 +41,7 @@ public class PlaylistContenidoService {
 
         return playlistContenidoRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException(
+                        new RecursoNoEncontradoException(
                                 "Contenido de playlist no encontrado"));
     }
 
@@ -50,11 +54,11 @@ public class PlaylistContenidoService {
 
         Playlist playlist = playlistRepository.findById(playlistId)
                 .orElseThrow(() ->
-                        new RuntimeException("Playlist no encontrada"));
+                        new RecursoNoEncontradoException("Playlist no encontrada"));
 
         Contenido contenido = contenidoRepository.findById(contenidoId)
                 .orElseThrow(() ->
-                        new RuntimeException("Contenido no encontrado"));
+                        new RecursoNoEncontradoException("Contenido no encontrado"));
 
         PlaylistContenido playlistContenido =
                 new PlaylistContenido();

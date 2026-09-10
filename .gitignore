@@ -72,3 +72,7 @@ desktop.ini
 # ---- Logs ----
 *.log
 logs/
+
+# Volcados de codigo generados a mano
+backend_codigo.txt
+*_codigo.txt

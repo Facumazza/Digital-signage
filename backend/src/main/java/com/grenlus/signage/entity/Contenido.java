@@ -52,6 +52,14 @@ public class Contenido {
     private TipoContenido tipo;
 
     @NotBlank
+    // La ruta interna del disco no sale por la API en ningun caso. Los
+
+    // controllers que devuelven la entidad cruda publicaban rutas absolutas
+
+    // del disco del servidor, que le dan a un atacante el mapa del sistema.
+
+    @com.fasterxml.jackson.annotation.JsonIgnore
+
     @Column(name = "ruta_archivo", nullable = false, length = 500)
     private String rutaArchivo;
 

@@ -1,5 +1,7 @@
 package com.grenlus.signage.service;
 
+import com.grenlus.signage.exception.RecursoNoEncontradoException;
+
 import com.grenlus.signage.entity.Cliente;
 import com.grenlus.signage.entity.Usuario;
 import com.grenlus.signage.enums.Rol;
@@ -35,13 +37,13 @@ public class UsuarioService {
     public Usuario buscarPorId(Long id) {
         return usuarioRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Usuario no encontrado"));
+                        new RecursoNoEncontradoException("Usuario no encontrado"));
     }
 
     public Usuario crear(Usuario usuario, Long clienteId) {
 
         if (usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
-            throw new RuntimeException("Ya existe un usuario con ese email");
+            throw new ReglaNegocioException("Ya existe un usuario con ese email");
         }
 
         // La contrasenia nunca se guarda como la mando el cliente. BCrypt
@@ -56,14 +58,14 @@ public class UsuarioService {
         if (usuario.getRol() == Rol.ADMIN_CLIENTE) {
 
             if (clienteId == null) {
-                throw new RuntimeException(
+                throw new ReglaNegocioException(
                         "Un ADMIN_CLIENTE debe pertenecer a un cliente"
                 );
             }
 
             Cliente cliente = clienteRepository.findById(clienteId)
                     .orElseThrow(() ->
-                            new RuntimeException("Cliente no encontrado"));
+                            new RecursoNoEncontradoException("Cliente no encontrado"));
 
             usuario.setCliente(cliente);
         }

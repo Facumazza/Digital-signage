@@ -1,5 +1,9 @@
 package com.grenlus.signage.service;
 
+import com.grenlus.signage.exception.ReglaNegocioException;
+
+import com.grenlus.signage.exception.RecursoNoEncontradoException;
+
 import com.grenlus.signage.entity.Cliente;
 import com.grenlus.signage.entity.Sucursal;
 import com.grenlus.signage.repository.ClienteRepository;
@@ -29,14 +33,14 @@ public class SucursalService {
     public Sucursal buscarPorId(Long id) {
         return sucursalRepository.findById(id)
                 .orElseThrow(() ->
-                        new RuntimeException("Sucursal no encontrada"));
+                        new RecursoNoEncontradoException("Sucursal no encontrada"));
     }
 
     public Sucursal crear(Sucursal sucursal, Long clienteId) {
 
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() ->
-                        new RuntimeException("Cliente no encontrado"));
+                        new RecursoNoEncontradoException("Cliente no encontrado"));
 
         sucursal.setCliente(cliente);
 

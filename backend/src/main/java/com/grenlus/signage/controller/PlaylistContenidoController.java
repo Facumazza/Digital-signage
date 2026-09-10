@@ -9,7 +9,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/playlist-contenidos")
-@CrossOrigin(origins = "http://localhost:5173")
 public class PlaylistContenidoController {
 
     private final PlaylistContenidoService playlistContenidoService;
