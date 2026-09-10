@@ -3,6 +3,7 @@ import { api, ErrorHttp } from "../api/cliente";
 import type { Contenido } from "../api/tipos";
 import { useClientes } from "../hooks/useClientes";
 import ImagenProtegida from "../componentes/ImagenProtegida";
+import VistaPrevia from "../componentes/VistaPrevia";
 
 /** Biblioteca de archivos de un cliente: subir, renombrar y dar de baja. */
 export default function Contenidos() {
@@ -14,6 +15,7 @@ export default function Contenidos() {
   const [subiendo, setSubiendo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
+  const [previsualizando, setPrevisualizando] = useState<Contenido | null>(null);
 
   useEffect(() => {
     if (clienteId === null) return;
@@ -156,7 +158,15 @@ export default function Contenidos() {
                     <span className="miniatura video">▶</span>
                   )}
                 </td>
-                <td>{c.nombre}</td>
+                <td>
+                  <button
+                    className="enlace"
+                    onClick={() => setPrevisualizando(c)}
+                    title="Ver el contenido"
+                  >
+                    {c.nombre}
+                  </button>
+                </td>
                 <td>
                   <span className="etiqueta">{c.tipo}</span>
                 </td>
@@ -171,6 +181,13 @@ export default function Contenidos() {
             ))}
           </tbody>
         </table>
+      )}
+
+      {previsualizando && (
+        <VistaPrevia
+          contenido={previsualizando}
+          onCerrar={() => setPrevisualizando(null)}
+        />
       )}
     </>
   );
