@@ -1,0 +1,174 @@
+package com.grenlus.signage.service;
+
+import com.grenlus.signage.dtos.ContenidoResponseDto;
+import com.grenlus.signage.dtos.ContenidoUpdateDto;
+import com.grenlus.signage.entity.Cliente;
+import com.grenlus.signage.entity.Contenido;
+import com.grenlus.signage.enums.TipoContenido;
+import com.grenlus.signage.exception.RecursoNoEncontradoException;
+import com.grenlus.signage.exception.ReglaNegocioException;
+import com.grenlus.signage.repository.ClienteRepository;
+import com.grenlus.signage.repository.ContenidoRepository;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
+@Service
+public class ContenidoService {
+
+    private final ContenidoRepository contenidoRepository;
+    private final ClienteRepository clienteRepository;
+    private final Path directorioStorage;
+
+    public ContenidoService(ContenidoRepository contenidoRepository,
+                            ClienteRepository clienteRepository,
+                            @Value("${signage.storage.ruta}") String rutaStorage) {
+        this.contenidoRepository = contenidoRepository;
+        this.clienteRepository = clienteRepository;
+        this.directorioStorage = Path.of(rutaStorage).toAbsolutePath().normalize();
+        try {
+            Files.createDirectories(this.directorioStorage);
+        } catch (IOException e) {
+            throw new UncheckedIOException("No se pudo crear el directorio de storage", e);
+        }
+    }
+
+    /**
+     * Guarda el archivo en disco y persiste sus metadatos.
+     *
+     * El nombre en disco lo genera el servidor (UUID + extension) y nunca se
+     * usa el que mando el cliente: un nombre como "../../application.properties"
+     * escribiria fuera del directorio de storage.
+     */
+    @Transactional
+    public ContenidoResponseDto subir(MultipartFile archivo, String nombre,
+                                      Long clienteId, Long duracionSegundos) {
+        if (archivo == null || archivo.isEmpty()) {
+            throw new ReglaNegocioException("El archivo es obligatorio");
+        }
+        Cliente cliente = clienteRepository.findById(clienteId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Cliente", clienteId));
+
+        TipoContenido tipo = deducirTipo(archivo.getContentType());
+        String nombreOriginal = archivo.getOriginalFilename();
+        String nombreEnDisco = UUID.randomUUID() + extensionDe(nombreOriginal);
+        Path destino = directorioStorage.resolve(nombreEnDisco);
+
+        try (var entrada = archivo.getInputStream()) {
+            Files.copy(entrada, destino, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            throw new UncheckedIOException("No se pudo guardar el archivo", e);
+        }
+
+        Contenido contenido = Contenido.builder()
+                .nombre(nombre)
+                .tipo(tipo)
+                .rutaArchivo(destino.toString())
+                .nombreArchivo(nombreOriginal == null ? nombreEnDisco : nombreOriginal)
+                .tamanoBytes(archivo.getSize())
+                .duracionSegundos(tipo == TipoContenido.VIDEO ? duracionSegundos : null)
+                .cliente(cliente)
+                .build();
+
+        return toResponse(contenidoRepository.save(contenido));
+    }
+
+    @Transactional(readOnly = true)
+    public List<ContenidoResponseDto> listarPorCliente(Long clienteId) {
+        return contenidoRepository.findByClienteIdAndActivoTrue(clienteId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ContenidoResponseDto buscarPorId(Long id) {
+        return toResponse(obtener(id));
+    }
+
+    @Transactional
+    public ContenidoResponseDto renombrar(Long id, ContenidoUpdateDto request) {
+        Contenido contenido = obtener(id);
+        contenido.setNombre(request.nombre());
+        return toResponse(contenido);
+    }
+
+    /**
+     * Baja logica. El archivo fisico queda en disco a proposito: alguna playlist
+     * puede seguir referenciando este contenido, y un player sin conexion puede
+     * estar reproduciendolo. Limpiar huerfanos es tarea de la Etapa 9.
+     */
+    @Transactional
+    public void desactivar(Long id) {
+        obtener(id).setActivo(false);
+    }
+
+    /** Devuelve el archivo para descargarlo. Es la url que consume el player. */
+    @Transactional(readOnly = true)
+    public Resource cargarArchivo(Long id) {
+        Contenido contenido = obtener(id);
+        try {
+            Resource recurso = new UrlResource(Path.of(contenido.getRutaArchivo()).toUri());
+            if (!recurso.exists() || !recurso.isReadable()) {
+                throw new RecursoNoEncontradoException(
+                        "El archivo del contenido " + id + " no esta disponible");
+            }
+            return recurso;
+        } catch (IOException e) {
+            throw new UncheckedIOException("No se pudo leer el archivo", e);
+        }
+    }
+
+    private Contenido obtener(Long id) {
+        return contenidoRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Contenido", id));
+    }
+
+    private TipoContenido deducirTipo(String contentType) {
+        if (contentType == null) {
+            throw new ReglaNegocioException("No se pudo determinar el tipo del archivo");
+        }
+        String tipo = contentType.toLowerCase(Locale.ROOT);
+        if (tipo.startsWith("video/")) {
+            return TipoContenido.VIDEO;
+        }
+        if (tipo.startsWith("image/")) {
+            return TipoContenido.IMAGEN;
+        }
+        throw new ReglaNegocioException(
+                "Solo se aceptan videos e imagenes. Se recibio: " + contentType);
+    }
+
+    private String extensionDe(String nombreArchivo) {
+        if (nombreArchivo == null) {
+            return "";
+        }
+        int punto = nombreArchivo.lastIndexOf('.');
+        return punto == -1 ? "" : nombreArchivo.substring(punto);
+    }
+
+    private ContenidoResponseDto toResponse(Contenido c) {
+        return new ContenidoResponseDto(
+                c.getId(),
+                c.getNombre(),
+                c.getTipo(),
+                "/api/contenidos/" + c.getId() + "/archivo",
+                c.getNombreArchivo(),
+                c.getTamanoBytes(),
+                c.getDuracionSegundos(),
+                c.getFechaSubida(),
+                c.getActivo(),
+                c.getCliente().getId());
+    }
+}

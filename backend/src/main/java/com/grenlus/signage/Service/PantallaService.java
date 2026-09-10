@@ -1,0 +1,141 @@
+package com.grenlus.signage.service;
+
+import com.grenlus.signage.dtos.AsignarPlaylistDto;
+import com.grenlus.signage.dtos.PantallaRequestDto;
+import com.grenlus.signage.dtos.PantallaResponseDto;
+import com.grenlus.signage.entity.Pantalla;
+import com.grenlus.signage.entity.Playlist;
+import com.grenlus.signage.entity.Sucursal;
+import com.grenlus.signage.exception.RecursoNoEncontradoException;
+import com.grenlus.signage.exception.ReglaNegocioException;
+import com.grenlus.signage.repository.PantallaRepository;
+import com.grenlus.signage.repository.PlaylistRepository;
+import com.grenlus.signage.repository.SucursalRepository;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class PantallaService {
+
+    /**
+     * El player manda heartbeat cada 20s (flujo 6.5). Un minuto da margen para
+     * perder dos latidos por una red lenta antes de declarar la pantalla caida.
+     */
+    private static final Duration TOLERANCIA_ONLINE = Duration.ofMinutes(1);
+
+    private final PantallaRepository pantallaRepository;
+    private final SucursalRepository sucursalRepository;
+    private final PlaylistRepository playlistRepository;
+
+    public PantallaService(PantallaRepository pantallaRepository,
+                           SucursalRepository sucursalRepository,
+                           PlaylistRepository playlistRepository) {
+        this.pantallaRepository = pantallaRepository;
+        this.sucursalRepository = sucursalRepository;
+        this.playlistRepository = playlistRepository;
+    }
+
+    @Transactional
+    public PantallaResponseDto crear(PantallaRequestDto request) {
+        if (pantallaRepository.existsByCodigo(request.codigo())) {
+            throw new ReglaNegocioException(
+                    "Ya existe una pantalla con el codigo " + request.codigo());
+        }
+        Sucursal sucursal = sucursalRepository.findById(request.sucursalId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sucursal", request.sucursalId()));
+
+        Pantalla pantalla = Pantalla.builder()
+                .codigo(request.codigo())
+                .nombre(request.nombre())
+                .sucursal(sucursal)
+                .build();
+        return toResponse(pantallaRepository.save(pantalla));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PantallaResponseDto> listarPorSucursal(Long sucursalId) {
+        return pantallaRepository.findBySucursalId(sucursalId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public PantallaResponseDto buscarPorId(Long id) {
+        return toResponse(obtener(id));
+    }
+
+    @Transactional
+    public PantallaResponseDto actualizar(Long id, PantallaRequestDto request) {
+        Pantalla pantalla = obtener(id);
+
+        if (!pantalla.getCodigo().equals(request.codigo())
+                && pantallaRepository.existsByCodigo(request.codigo())) {
+            throw new ReglaNegocioException(
+                    "Ya existe una pantalla con el codigo " + request.codigo());
+        }
+        Sucursal sucursal = sucursalRepository.findById(request.sucursalId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sucursal", request.sucursalId()));
+
+        pantalla.setCodigo(request.codigo());
+        pantalla.setNombre(request.nombre());
+        pantalla.setSucursal(sucursal);
+        return toResponse(pantalla);
+    }
+
+    /**
+     * Define el estado deseado de la pantalla. No le avisa a nadie: el player
+     * lo descubre solo la proxima vez que consulte su configuracion. Por eso
+     * asignar una playlist a una TV apagada no pierde la orden.
+     */
+    @Transactional
+    public PantallaResponseDto asignarPlaylist(Long id, AsignarPlaylistDto request) {
+        Pantalla pantalla = obtener(id);
+
+        if (request.playlistId() == null) {
+            pantalla.setPlaylist(null);
+            return toResponse(pantalla);
+        }
+        Playlist playlist = playlistRepository.findById(request.playlistId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Playlist", request.playlistId()));
+        pantalla.setPlaylist(playlist);
+        return toResponse(pantalla);
+    }
+
+    @Transactional
+    public void desactivar(Long id) {
+        obtener(id).setActivo(false);
+    }
+
+    private Pantalla obtener(Long id) {
+        return pantallaRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Pantalla", id));
+    }
+
+    /** ONLINE/OFFLINE se calcula, no se guarda. Ver el comentario en Pantalla. */
+    private String estadoDe(LocalDateTime ultimaConexion) {
+        if (ultimaConexion == null) {
+            return "OFFLINE";
+        }
+        return Duration.between(ultimaConexion, LocalDateTime.now())
+                .compareTo(TOLERANCIA_ONLINE) <= 0 ? "ONLINE" : "OFFLINE";
+    }
+
+    private PantallaResponseDto toResponse(Pantalla p) {
+        Playlist playlist = p.getPlaylist();
+        return new PantallaResponseDto(
+                p.getId(),
+                p.getCodigo(),
+                p.getNombre(),
+                estadoDe(p.getUltimaConexion()),
+                p.getUltimaConexion(),
+                p.getActivo(),
+                p.getSucursal().getId(),
+                p.getSucursal().getNombre(),
+                playlist == null ? null : playlist.getId(),
+                playlist == null ? null : playlist.getNombre());
+    }
+}
