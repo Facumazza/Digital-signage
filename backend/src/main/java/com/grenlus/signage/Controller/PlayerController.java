@@ -1,6 +1,6 @@
 package com.grenlus.signage.controller;
 
-import com.grenlus.signage.dto.PlayerConfigResponse;
+import com.grenlus.signage.dtos.PlayerConfigResponse;
 import com.grenlus.signage.service.PlayerService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

@@ -1,4 +1,4 @@
-package com.grenlus.signage.dto;
+package com.grenlus.signage.dtos;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -16,5 +16,5 @@ public class PlayerConfigResponse {
     private String pantalla;
     private Long playlistId;
     private Long playlistVersion;
-    private List<ContenidoPlayerDTO> contenidos;
+    private List<ContenidoPlayerDto> contenidos;
 }

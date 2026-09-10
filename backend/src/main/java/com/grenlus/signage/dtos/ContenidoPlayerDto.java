@@ -1,4 +1,4 @@
-package com.grenlus.signage.dto;
+package com.grenlus.signage.dtos;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
