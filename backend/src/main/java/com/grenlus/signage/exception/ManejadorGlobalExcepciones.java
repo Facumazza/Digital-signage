@@ -3,6 +3,8 @@ package com.grenlus.signage.exception;
 import com.grenlus.signage.dtos.ErrorResponseDto;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -29,6 +31,22 @@ public class ManejadorGlobalExcepciones {
     @ExceptionHandler(ReglaNegocioException.class)
     public ResponseEntity<ErrorResponseDto> reglaViolada(ReglaNegocioException ex) {
         return construir(HttpStatus.CONFLICT, ex.getMessage(), null);
+    }
+
+    /**
+     * Credenciales incorrectas en el login. A proposito no se distingue entre
+     * "ese email no existe" y "la contrasenia esta mal": decirlo permitiria
+     * averiguar que emails estan registrados.
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<ErrorResponseDto> credenciales(AuthenticationException ex) {
+        return construir(HttpStatus.UNAUTHORIZED, "Email o contrasenia incorrectos", null);
+    }
+
+    /** Autenticado, pero sin permiso para este recurso. */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ErrorResponseDto> sinPermiso(AccessDeniedException ex) {
+        return construir(HttpStatus.FORBIDDEN, "No tenes permiso para esta operacion", null);
     }
 
     /** Se dispara cuando falla una validacion @Valid del DTO de entrada. */

@@ -17,7 +17,14 @@ public class Usuario {
     @Column(nullable = false, unique = true)
     private String email;
 
-    @Column(nullable = false)
+    @Column(name = "password_hash", nullable = false)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private String passwordHash;
+
+    /** Solo entrada. No se persiste ni se devuelve: el service lo hashea
+     *  hacia passwordHash y lo descarta. */
+    @jakarta.persistence.Transient
+    @com.fasterxml.jackson.annotation.JsonProperty(access = com.fasterxml.jackson.annotation.JsonProperty.Access.WRITE_ONLY)
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -60,6 +67,14 @@ public class Usuario {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
     }
 
     public Rol getRol() {
