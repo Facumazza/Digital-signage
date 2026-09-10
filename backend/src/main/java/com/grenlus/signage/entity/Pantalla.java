@@ -60,11 +60,10 @@ public class Pantalla {
     @Column(nullable = false)
     private Boolean activo;
 
-    // TODO: agregar cuando Sucursal exista en develop.
-    // Segun la guia la relacion es obligatoria: N Pantallas -> 1 Sucursal.
-    // @ManyToOne
-    // @JoinColumn(name = "sucursal_id", nullable = false)
-    // private Sucursal sucursal;
+
+    @ManyToOne
+    @JoinColumn(name = "sucursal_id", nullable = false)
+    private Sucursal sucursal;
 
     /** Nullable a proposito: una pantalla se da de alta antes de que se le
      *  asigne contenido. Sin playlist simplemente no reproduce nada. */

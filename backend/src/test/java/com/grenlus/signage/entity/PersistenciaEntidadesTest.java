@@ -9,6 +9,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -33,6 +34,21 @@ class PersistenciaEntidadesTest {
                 .nombre("Grenlus SA")
                 .email("contacto@grenlus.com")
                 .build());
+    }
+
+    /** El codigo es unique en la base, y la base de desarrollo puede tener
+     *  datos de pruebas manuales. Uno nuevo por test lo hace independiente. */
+    private String codigoUnico() {
+        return "GRN-" + UUID.randomUUID().toString().substring(0, 6).toUpperCase();
+    }
+
+    /** Sucursal no usa Lombok, asi que se arma con setters. */
+    private Sucursal sucursalPersistida() {
+        Sucursal sucursal = new Sucursal();
+        sucursal.setNombre("Lomas");
+        sucursal.setCiudad("Lomas de Zamora");
+        sucursal.setCliente(clientePersistido());
+        return em.persistFlushFind(sucursal);
     }
 
     @Test
@@ -80,8 +96,9 @@ class PersistenciaEntidadesTest {
     @DisplayName("Pantalla: nace sin playlist y sin conexion previa")
     void pantallaNaceSinAsignar() {
         Pantalla pantalla = em.persistFlushFind(Pantalla.builder()
-                .codigo("GRN-A8K91X")
+                .codigo(codigoUnico())
                 .nombre("TV Entrada")
+                .sucursal(sucursalPersistida())
                 .build());
 
         assertThat(pantalla.getActivo()).isTrue();
@@ -98,8 +115,9 @@ class PersistenciaEntidadesTest {
                 .build());
 
         Pantalla pantalla = em.persistFlushFind(Pantalla.builder()
-                .codigo("GRN-X92ABC")
+                .codigo(codigoUnico())
                 .nombre("TV Salon")
+                .sucursal(sucursalPersistida())
                 .playlist(playlist)
                 .ultimaConexion(LocalDateTime.now())
                 .build());
