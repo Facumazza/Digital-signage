@@ -1,4 +1,4 @@
-# División de trabajo — corte vertical por dominio
+# División de trabajo y estado del backend
 
 Este documento reemplaza el reparto "uno hace entidades, otro hace services" de la
 sección 13 de la [guía](guia-proyecto.md).
@@ -11,111 +11,86 @@ casi no se pisan archivos.
 
 ---
 
-## Base compartida — ya está en `develop`
+## Estado actual
 
-Nadie la "posee". Si hay que cambiarla, se avisa antes.
+El backend del panel está completo: las 7 entidades, sus repositories, DTOs,
+services y controllers, más el endpoint del player y autenticación.
 
-| Archivo | Qué es |
+| Etapa | Estado |
 | --- | --- |
-| `backend/pom.xml` | Spring Boot 4.1.1, Java 21, Maven |
-| `SignageApplication.java` | Arranque |
-| `enums/TipoContenido.java`, `enums/Rol.java` | Enums de la sección 4 |
-| `entity/Cliente.java` + `ClienteRepository` | Raíz del modelo: los dos dominios la referencian |
-| `application.properties` | Conexión a PostgreSQL vía variables de entorno |
-| `docker-compose.yml` | PostgreSQL 16 local |
+| 0 — Base Spring + PostgreSQL | ✅ |
+| 1 — Modelo y repositories | ✅ |
+| 2 — Contenido + upload y descarga | ✅ |
+| 3 — Playlist + versionado | ✅ |
+| 4 — API del player (config + heartbeat) | ✅ |
+| 5 a 9 — Android, React, prueba remota, robustez | ❌ no arrancados |
+| 10 — Seguridad JWT y roles | ✅ (falta cerrar el player) |
+| 11 — Producto | ❌ |
 
-`Cliente` ya está hecha para que ninguno de los dos la duplique, y sirve de
-plantilla: así se ven las anotaciones, el `@PrePersist` y el naming de columnas
-que vamos a usar en el resto.
+**Lo que falta para el MVP no es backend:** son el player Android y el panel
+React, que no tienen todavía una sola línea.
 
----
+## Reparto por dominio
 
-## Reparto
-
-### Compañero — dominio ORGANIZACIÓN (dónde está cada pantalla)
-
-| Capa | Archivos |
-| --- | --- |
-| Entidades | `Sucursal`, `Pantalla` |
-| Repositories | `SucursalRepository`, `PantallaRepository` |
-| DTOs | `SucursalRequest/Response`, `PantallaRequest/Response` |
-| Services | `SucursalService`, `PantallaService` |
-| Controllers | `/api/sucursales`, `/api/pantallas` |
-| Lógica propia | Generación del código `GRN-XXXXXX`, heartbeat, cálculo ONLINE/OFFLINE |
-
-Rama: `feature/sucursal-pantalla`
-
-### Facu — dominio CONTENIDO (qué se reproduce)
-
-| Capa | Archivos |
-| --- | --- |
-| Entidades | `Contenido`, `Playlist`, `PlaylistContenido` |
-| Repositories | `ContenidoRepository`, `PlaylistRepository`, `PlaylistContenidoRepository` |
-| DTOs | `ContenidoResponse`, `PlaylistRequest/Response`, `PlaylistItemRequest` |
-| Services | `ContenidoService` (upload + storage), `PlaylistService` |
-| Controllers | `/api/contenidos`, `/api/playlists` |
-| Lógica propia | Guardado de archivos en disco, orden de la playlist, incremento de `version` |
-
-Rama: `feature/contenido-playlist`
-
-### De a dos — puntos de integración
-
-Estos tocan los dos dominios. No los arranque nadie solo.
-
-| Qué | Cuándo | Por qué es conjunto |
+| Dominio | Quién | Entidades |
 | --- | --- | --- |
-| Asignar playlist a pantalla | Etapa 7 | Escribe `Pantalla` (él) leyendo `Playlist` (vos) |
-| `GET /api/player/{codigo}/config` | Etapa 4 | Lee `Pantalla` + `Playlist` + `Contenido` |
-| `Usuario` + seguridad | Etapa 10 | Transversal, va después del circuito completo |
+| Contenido y reproducción | Facu | `Playlist`, `Contenido`, `Pantalla` |
+| Organización y acceso | Lucas | `Sucursal`, `Usuario`, `PlaylistContenido` |
+| Base compartida | los dos | `Cliente`, enums, config, seguridad |
 
----
+`Cliente` no la posee nadie: los dos dominios la referencian. Si hay que
+cambiarla, se avisa antes.
 
-## La única dependencia cruzada, y cómo se evita
+**Punto de contacto a coordinar:** `PlaylistContenido` es de Lucas, pero la
+regla que incrementa `Playlist.version` al cambiar la composición es lo que
+dispara toda la sincronización del player. Cualquier cambio ahí afecta el
+dominio de los dos.
 
-`Pantalla` tiene que apuntar a `Playlist` (sección 3 de la guía), pero `Playlist`
-la construye Facu recién en la Etapa 3. Si el compañero declara el campo ahora,
-no compila.
+## Ramas
 
-**Acuerdo: `Pantalla` nace sin el campo `playlist`.** Se agrega en la Etapa 3,
-cuando `Playlist` ya esté en `develop`. Coincide con el orden del roadmap
-—Etapa 1 es Cliente/Sucursal/Pantalla, Etapa 3 es Playlist— así que no se pierde
-nada.
-
-```java
-// Pantalla.java — Etapa 1: así arranca
-@ManyToOne
-@JoinColumn(name = "sucursal_id", nullable = false)
-private Sucursal sucursal;
-
-// TODO Etapa 3: agregar cuando Playlist exista en develop
-// @ManyToOne
-// @JoinColumn(name = "playlist_id")
-// private Playlist playlist;
+```
+main                        versiones estables
+develop                     integración, siempre compilando
+  |-- facu/<tema>
+  +-- mila/<tema>
 ```
 
----
+Se sale de `develop` y se vuelve a `develop`. Sin pull request: son dos
+personas y se hablan todos los días. La contrapartida es que **cada uno es
+responsable de no romper `develop`**: compilar y correr `mvnw test` antes de
+pushear. Ya pasó tres veces que `develop` quedó sin compilar y bloqueó al otro.
 
-## Convenciones acordadas
+Antes de empezar a trabajar, siempre:
 
-Para que el código de los dos se lea igual:
+```bash
+git checkout develop && git pull
+```
 
-- **Paquetes**: `com.grenlus.signage.<capa>` — `entity`, `repository`, `dto`, `service`, `controller`, `enums`, `config`, `exception`.
-- **DTOs como `record`**: son inmutables y no necesitan Lombok. Ej: `public record SucursalResponse(Long id, String nombre, String ciudad) {}`.
+## Convenciones
+
+- **Paquetes en minúscula**: `controller`, `service`, `repository`, `entity`, `dtos`, `enums`, `config`, `exception`, `security`.
+- **DTOs como `record`**, con sufijo `Dto`, en el paquete `dtos`.
+- **Nunca exponer entidades JPA en el controller.** Ni de entrada ni de salida: un `@RequestBody Entidad` deja setear cualquier campo, incluido el `id`, y devolverla arrastra relaciones enteras y datos internos.
 - **Entidades con Lombok**: `@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder`.
-- **Nunca exponer entidades JPA en el controller.** El controller habla en DTOs; la conversión vive en el service.
-- **Tablas y columnas en `snake_case`** (`fecha_alta`, `playlist_id`); los campos Java en `camelCase`.
-- **El controller no tiene lógica**: valida con `@Valid` y delega al service.
-- **Reglas de negocio siempre en el service**, nunca en el repository ni en la entidad.
+- **Tablas y columnas en `snake_case`**, campos Java en `camelCase`.
+- **El controller no tiene lógica**: valida con `@Valid` y delega.
+- **Reglas de negocio en el service**, con `@Transactional` (o `readOnly = true` al leer).
+- **Errores tipados**: `RecursoNoEncontradoException` (404) y `ReglaNegocioException` (409). Nunca `RuntimeException`, que termina en 500.
+- **Bajas lógicas** (`activo = false`), no `delete`. La excepción es `PlaylistContenido`, que es una relación y sí se borra.
 
-## Flujo de git
+## Deuda pendiente
 
-```
-develop                        <- integración, siempre compilando
-  |-- feature/sucursal-pantalla    (compañero)
-  +-- feature/contenido-playlist   (Facu)
-```
+| Qué | Por qué importa |
+| --- | --- |
+| `/api/player/**` está abierto | Cualquiera que sepa un código `GRN-XXXX` lee la config de esa pantalla. **Cerrar antes de exponer a Internet** |
+| El secreto JWT está en el repo | Es un valor de desarrollo. En producción va por `SIGNAGE_JWT_SECRETO` |
+| Sin índices en las columnas FK | PostgreSQL no los crea solo. Se va a notar cuando haya volumen (Etapa 9) |
+| `ddl-auto=update` | No borra columnas ni renombra. Producción necesita migraciones versionadas (Etapa 9) |
+| Sin tests de services ni controllers | Los 5 que hay cubren solo el mapeo de entidades |
 
-- Se sale de `develop` y se vuelve a `develop`. `main` solo recibe versiones estables.
-- Commits chicos. Antes de mergear, `git pull origin develop` y resolver conflictos en la propia rama.
-- Antes de tocar un archivo de la base compartida: avisar.
-- Antes de implementar un endpoint: acordar request y response (regla de la sección 13 de la guía).
+## Checklist antes de pushear
+
+- [ ] `mvnw test` en verde
+- [ ] El endpoint probado a mano, caso feliz y al menos un error
+- [ ] `git pull` de `develop` hecho y sin conflictos
+- [ ] Commit chico y con el porqué, no solo el qué

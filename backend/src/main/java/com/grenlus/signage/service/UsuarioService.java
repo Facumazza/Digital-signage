@@ -1,15 +1,17 @@
 package com.grenlus.signage.service;
 
-import com.grenlus.signage.exception.RecursoNoEncontradoException;
-
+import com.grenlus.signage.dtos.UsuarioRequestDto;
+import com.grenlus.signage.dtos.UsuarioResponseDto;
 import com.grenlus.signage.entity.Cliente;
 import com.grenlus.signage.entity.Usuario;
 import com.grenlus.signage.enums.Rol;
+import com.grenlus.signage.exception.RecursoNoEncontradoException;
+import com.grenlus.signage.exception.ReglaNegocioException;
 import com.grenlus.signage.repository.ClienteRepository;
 import com.grenlus.signage.repository.UsuarioRepository;
-import com.grenlus.signage.exception.ReglaNegocioException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -20,83 +22,99 @@ public class UsuarioService {
     private final ClienteRepository clienteRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public UsuarioService(
-            UsuarioRepository usuarioRepository,
-            ClienteRepository clienteRepository,
-            PasswordEncoder passwordEncoder
-    ) {
+    public UsuarioService(UsuarioRepository usuarioRepository,
+                          ClienteRepository clienteRepository,
+                          PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.clienteRepository = clienteRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
-    public List<Usuario> listarTodos() {
-        return usuarioRepository.findAll();
+    @Transactional(readOnly = true)
+    public List<UsuarioResponseDto> listarTodos() {
+        return usuarioRepository.findAll().stream().map(this::toResponse).toList();
     }
 
-    public Usuario buscarPorId(Long id) {
-        return usuarioRepository.findById(id)
-                .orElseThrow(() ->
-                        new RecursoNoEncontradoException("Usuario no encontrado"));
+    @Transactional(readOnly = true)
+    public UsuarioResponseDto buscarPorId(Long id) {
+        return toResponse(obtener(id));
     }
 
-    public Usuario crear(Usuario usuario, Long clienteId) {
-
-        if (usuarioRepository.findByEmail(usuario.getEmail()).isPresent()) {
-            throw new ReglaNegocioException("Ya existe un usuario con ese email");
+    @Transactional
+    public UsuarioResponseDto crear(UsuarioRequestDto request) {
+        if (usuarioRepository.findByEmail(request.email()).isPresent()) {
+            throw new ReglaNegocioException("Ya existe un usuario con el email " + request.email());
         }
-
-        // La contrasenia nunca se guarda como la mando el cliente. BCrypt
-        // genera un salt propio por usuario, asi dos personas con la misma
-        // clave tienen hashes distintos.
-        if (usuario.getPassword() == null || usuario.getPassword().isBlank()) {
+        if (request.password() == null || request.password().isBlank()) {
             throw new ReglaNegocioException("La contrasenia es obligatoria");
         }
-        usuario.setPasswordHash(passwordEncoder.encode(usuario.getPassword()));
-        usuario.setPassword(null);
 
-        if (usuario.getRol() == Rol.ADMIN_CLIENTE) {
+        Usuario usuario = new Usuario();
+        usuario.setNombre(request.nombre());
+        usuario.setEmail(request.email());
+        usuario.setRol(request.rol());
+        // BCrypt genera un salt propio por usuario: dos personas con la misma
+        // clave terminan con hashes distintos.
+        usuario.setPasswordHash(passwordEncoder.encode(request.password()));
+        usuario.setCliente(clienteDe(request));
 
-            if (clienteId == null) {
-                throw new ReglaNegocioException(
-                        "Un ADMIN_CLIENTE debe pertenecer a un cliente"
-                );
-            }
-
-            Cliente cliente = clienteRepository.findById(clienteId)
-                    .orElseThrow(() ->
-                            new RecursoNoEncontradoException("Cliente no encontrado"));
-
-            usuario.setCliente(cliente);
-        }
-
-        if (usuario.getRol() == Rol.SUPER_ADMIN) {
-            usuario.setCliente(null);
-        }
-
-        return usuarioRepository.save(usuario);
+        return toResponse(usuarioRepository.save(usuario));
     }
 
-    public Usuario actualizar(Long id, Usuario datos) {
+    @Transactional
+    public UsuarioResponseDto actualizar(Long id, UsuarioRequestDto request) {
+        Usuario usuario = obtener(id);
 
-        Usuario usuario = buscarPorId(id);
+        usuarioRepository.findByEmail(request.email())
+                .filter(otro -> !otro.getId().equals(id))
+                .ifPresent(otro -> {
+                    throw new ReglaNegocioException(
+                            "Ya existe un usuario con el email " + request.email());
+                });
 
-        usuario.setNombre(datos.getNombre());
-        usuario.setEmail(datos.getEmail());
-        usuario.setRol(datos.getRol());
-        usuario.setActivo(datos.getActivo());
+        usuario.setNombre(request.nombre());
+        usuario.setEmail(request.email());
+        usuario.setRol(request.rol());
+        usuario.setCliente(clienteDe(request));
 
-        if (datos.getPassword() != null && !datos.getPassword().isBlank()) {
-            usuario.setPasswordHash(passwordEncoder.encode(datos.getPassword()));
+        // La contrasenia solo cambia si mandaron una nueva.
+        if (request.password() != null && !request.password().isBlank()) {
+            usuario.setPasswordHash(passwordEncoder.encode(request.password()));
         }
-
-        return usuarioRepository.save(usuario);
+        return toResponse(usuario);
     }
 
-    public void eliminar(Long id) {
+    /**
+     * Baja logica. Borrar el usuario fisicamente pierde el rastro de quien hizo
+     * que, y UsuarioDetailsService ya rechaza el login de los inactivos.
+     */
+    @Transactional
+    public void desactivar(Long id) {
+        obtener(id).setActivo(false);
+    }
 
-        Usuario usuario = buscarPorId(id);
+    /** SUPER_ADMIN es global; ADMIN_CLIENTE tiene que pertenecer a un cliente. */
+    private Cliente clienteDe(UsuarioRequestDto request) {
+        if (request.rol() == Rol.SUPER_ADMIN) {
+            return null;
+        }
+        if (request.clienteId() == null) {
+            throw new ReglaNegocioException("Un ADMIN_CLIENTE debe pertenecer a un cliente");
+        }
+        return clienteRepository.findById(request.clienteId())
+                .orElseThrow(() -> new RecursoNoEncontradoException("Cliente", request.clienteId()));
+    }
 
-        usuarioRepository.delete(usuario);
+    private Usuario obtener(Long id) {
+        return usuarioRepository.findById(id)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Usuario", id));
+    }
+
+    private UsuarioResponseDto toResponse(Usuario u) {
+        Cliente cliente = u.getCliente();
+        return new UsuarioResponseDto(
+                u.getId(), u.getNombre(), u.getEmail(), u.getRol(), u.getActivo(),
+                cliente == null ? null : cliente.getId(),
+                cliente == null ? null : cliente.getNombre());
     }
 }

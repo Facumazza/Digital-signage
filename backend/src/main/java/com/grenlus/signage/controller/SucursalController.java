@@ -1,10 +1,13 @@
 package com.grenlus.signage.controller;
 
-import com.grenlus.signage.entity.Sucursal;
+import com.grenlus.signage.dtos.SucursalRequestDto;
+import com.grenlus.signage.dtos.SucursalResponseDto;
 import com.grenlus.signage.service.SucursalService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.util.List;
 
 @RestController
@@ -18,36 +21,33 @@ public class SucursalController {
     }
 
     @GetMapping
-    public List<Sucursal> listarTodas() {
+    public List<SucursalResponseDto> listarTodas() {
         return sucursalService.listarTodas();
     }
 
     @GetMapping("/{id}")
-    public Sucursal buscarPorId(@PathVariable Long id) {
+    public SucursalResponseDto buscarPorId(@PathVariable Long id) {
         return sucursalService.buscarPorId(id);
     }
 
     @PostMapping("/cliente/{clienteId}")
-    public Sucursal crear(
+    public ResponseEntity<SucursalResponseDto> crear(
             @PathVariable Long clienteId,
-            @RequestBody Sucursal sucursal
-    ) {
-        return sucursalService.crear(sucursal, clienteId);
+            @Valid @RequestBody SucursalRequestDto request) {
+
+        SucursalResponseDto creada = sucursalService.crear(request, clienteId);
+        return ResponseEntity.created(URI.create("/api/sucursales/" + creada.id())).body(creada);
     }
 
     @PutMapping("/{id}")
-    public Sucursal actualizar(
-            @PathVariable Long id,
-            @RequestBody Sucursal sucursal
-    ) {
-        return sucursalService.actualizar(id, sucursal);
+    public SucursalResponseDto actualizar(@PathVariable Long id,
+                                          @Valid @RequestBody SucursalRequestDto request) {
+        return sucursalService.actualizar(id, request);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> eliminar(@PathVariable Long id) {
-
-        sucursalService.eliminar(id);
-
+    public ResponseEntity<Void> desactivar(@PathVariable Long id) {
+        sucursalService.desactivar(id);
         return ResponseEntity.noContent().build();
     }
 }
