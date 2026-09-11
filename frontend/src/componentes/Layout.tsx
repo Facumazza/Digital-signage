@@ -9,6 +9,7 @@ export default function Layout() {
     <div className="contenedor">
       <header className="barra">
         <nav className="nav">
+          <NavLink to="/sucursales">Sucursales</NavLink>
           <NavLink to="/pantallas">Pantallas</NavLink>
           <NavLink to="/contenidos">Contenidos</NavLink>
           <NavLink to="/playlists">Playlists</NavLink>

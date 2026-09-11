@@ -80,4 +80,11 @@ public class ContenidoController {
         contenidoService.desactivar(id);
         return ResponseEntity.noContent().build();
     }
+
+    /** Vuelve a activar un recurso dado de baja. */
+    @PostMapping("/{id}/reactivar")
+    public ResponseEntity<Void> reactivar(@PathVariable Long id) {
+        contenidoService.reactivar(id);
+        return ResponseEntity.noContent().build();
+    }
 }

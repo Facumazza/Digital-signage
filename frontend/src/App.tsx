@@ -3,6 +3,7 @@ import { ProveedorSesion, useSesion } from "./auth/SesionContext";
 import Layout from "./componentes/Layout";
 import Login from "./paginas/Login";
 import Pantallas from "./paginas/Pantallas";
+import Sucursales from "./paginas/Sucursales";
 import Contenidos from "./paginas/Contenidos";
 import Playlists from "./paginas/Playlists";
 import type { ReactNode } from "react";
@@ -28,6 +29,7 @@ export default function App() {
             }
           >
             <Route path="/pantallas" element={<Pantallas />} />
+            <Route path="/sucursales" element={<Sucursales />} />
             <Route path="/contenidos" element={<Contenidos />} />
             <Route path="/playlists" element={<Playlists />} />
           </Route>

@@ -381,3 +381,13 @@ input[type="file"] {
 .enlace:hover {
   text-decoration: underline;
 }
+
+/* Una fila inactiva se ve, pero se nota que no esta en servicio. */
+.tabla tr.inactiva td:not(:first-child):not(:last-child) {
+  opacity: 0.5;
+}
+
+.acciones {
+  display: flex;
+  gap: 0.4rem;
+}

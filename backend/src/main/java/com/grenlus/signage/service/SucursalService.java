@@ -81,6 +81,18 @@ public class SucursalService {
         obtener(id).setActivo(false);
     }
 
+    /**
+     * Vuelve a poner la sucursal en servicio.
+     *
+     * Una baja logica sin esto no es reversible: es un borrado que ademas deja
+     * la fila ocupando su nombre. Si un local cierra por refaccion y reabre,
+     * tiene que poder volver sin recrearlo y perder sus pantallas.
+     */
+    @Transactional
+    public void reactivar(Long id) {
+        obtener(id).setActivo(true);
+    }
+
     private Sucursal obtener(Long id) {
         Sucursal sucursal = sucursalRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Sucursal", id));

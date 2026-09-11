@@ -50,4 +50,11 @@ public class SucursalController {
         sucursalService.desactivar(id);
         return ResponseEntity.noContent().build();
     }
+
+    /** Vuelve a activar un recurso dado de baja. */
+    @PostMapping("/{id}/reactivar")
+    public ResponseEntity<Void> reactivar(@PathVariable Long id) {
+        sucursalService.reactivar(id);
+        return ResponseEntity.noContent().build();
+    }
 }

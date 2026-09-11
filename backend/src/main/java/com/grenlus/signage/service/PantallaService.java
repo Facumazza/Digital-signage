@@ -138,6 +138,12 @@ public class PantallaService {
         obtener(id).setActivo(false);
     }
 
+    /** La vuelta de la baja logica: sin esto, desactivar es irreversible. */
+    @Transactional
+    public void reactivar(Long id) {
+        obtener(id).setActivo(true);
+    }
+
     private Pantalla obtener(Long id) {
         Pantalla pantalla = pantallaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Pantalla", id));

@@ -47,4 +47,11 @@ public class PlaylistController {
         playlistService.desactivar(id);
         return ResponseEntity.noContent().build();
     }
+
+    /** Vuelve a activar un recurso dado de baja. */
+    @PostMapping("/{id}/reactivar")
+    public ResponseEntity<Void> reactivar(@PathVariable Long id) {
+        playlistService.reactivar(id);
+        return ResponseEntity.noContent().build();
+    }
 }

@@ -76,6 +76,12 @@ public class PlaylistService {
         obtener(id).setActivo(false);
     }
 
+    /** La vuelta de la baja logica: sin esto, desactivar es irreversible. */
+    @Transactional
+    public void reactivar(Long id) {
+        obtener(id).setActivo(true);
+    }
+
     private Playlist obtener(Long id) {
         Playlist playlist = playlistRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Playlist", id));

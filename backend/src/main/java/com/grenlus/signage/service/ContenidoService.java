@@ -121,6 +121,12 @@ public class ContenidoService {
         obtener(id).setActivo(false);
     }
 
+    /** La vuelta de la baja logica: sin esto, desactivar es irreversible. */
+    @Transactional
+    public void reactivar(Long id) {
+        obtener(id).setActivo(true);
+    }
+
     /** Devuelve el archivo para descargarlo. Es la url que consume el player. */
     @Transactional(readOnly = true)
     public Resource cargarArchivo(Long id) {
