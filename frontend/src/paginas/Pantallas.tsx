@@ -56,6 +56,28 @@ export default function Pantallas() {
   }
 
   /**
+   * Aplica una playlist a todas las pantallas del local de una vez.
+   *
+   * No crea una relación entre sucursal y playlist: escribe la misma playlist
+   * en cada pantalla. Por eso después se puede cambiar una sola, y la tabla
+   * sigue mostrando qué reproduce cada una.
+   */
+  async function asignarATodas(playlistId: string) {
+    if (sucursalId === null || playlistId === "__") return;
+    setError(null);
+    try {
+      const actualizadas = await api.put<Pantalla[]>(
+        `/api/pantallas/sucursal/${sucursalId}/playlist`,
+        { playlistId: playlistId === "" ? null : Number(playlistId) },
+      );
+      const porId = new Map(actualizadas.map((p) => [p.id, p]));
+      setPantallas((previas) => previas.map((p) => porId.get(p.id) ?? p));
+    } catch (err) {
+      mostrarError(err);
+    }
+  }
+
+  /**
    * Define el estado deseado de la pantalla. No le avisa a la TV: el player lo
    * descubre la proxima vez que consulte su configuracion, por eso funciona
    * aunque este apagada.
@@ -113,6 +135,30 @@ export default function Pantallas() {
               <p>Esta sucursal no tiene pantallas.</p>
             </div>
           ) : (
+            <>
+              {pantallas.length > 1 && (
+                <div className="tarjeta fila-form">
+                  <label className="crecer">
+                    Aplicar a las {pantallas.length} pantallas del local
+                    <select
+                      value="__"
+                      onChange={(e) => asignarATodas(e.target.value)}
+                    >
+                      <option value="__">— elegir playlist —</option>
+                      <option value="">— sin contenido —</option>
+                      {playlists.map((pl) => (
+                        <option key={pl.id} value={pl.id}>
+                          {pl.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+              )}
+            </>
+          )}
+
+          {pantallas.length > 0 && (
             <table className="tabla">
               <thead>
                 <tr>

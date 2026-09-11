@@ -133,6 +133,39 @@ public class PantallaService {
         return token;
     }
 
+    /**
+     * Aplica la misma playlist a todas las pantallas activas de una sucursal.
+     *
+     * Es una comodidad, no una relacion nueva: cada pantalla sigue teniendo su
+     * playlist propia, asi que despues se puede cambiar una sola sin afectar al
+     * resto y el panel sigue mostrando que reproduce cada una.
+     *
+     * Solo toca las activas: una pantalla dada de baja no deberia volver a
+     * entrar en servicio por un cambio masivo.
+     */
+    @Transactional
+    public List<PantallaResponseDto> asignarPlaylistASucursal(Long sucursalId,
+                                                              AsignarPlaylistDto request) {
+        sucursalVerificada(sucursalId);
+
+        Playlist playlist = null;
+        if (request.playlistId() != null) {
+            playlist = playlistRepository.findById(request.playlistId())
+                    .orElseThrow(() -> new RecursoNoEncontradoException(
+                            "Playlist", request.playlistId()));
+            controlAcceso.verificar(playlist.getCliente().getId());
+        }
+
+        List<Pantalla> pantallas = pantallaRepository.findBySucursalId(sucursalId).stream()
+                .filter(p -> Boolean.TRUE.equals(p.getActivo()))
+                .toList();
+
+        for (Pantalla pantalla : pantallas) {
+            pantalla.setPlaylist(playlist);
+        }
+        return pantallas.stream().map(this::toResponse).toList();
+    }
+
     @Transactional
     public void desactivar(Long id) {
         obtener(id).setActivo(false);

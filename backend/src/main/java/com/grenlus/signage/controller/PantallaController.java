@@ -65,6 +65,17 @@ public class PantallaController {
         return pantallaService.asignarPlaylist(id, request);
     }
 
+    /**
+     * Aplica una playlist a todas las pantallas activas de una sucursal, para
+     * no tener que ir una por una en un local con varias TVs.
+     */
+    @PutMapping("/sucursal/{sucursalId}/playlist")
+    public List<PantallaResponseDto> asignarPlaylistASucursal(
+            @PathVariable Long sucursalId,
+            @RequestBody AsignarPlaylistDto request) {
+        return pantallaService.asignarPlaylistASucursal(sucursalId, request);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> desactivar(@PathVariable Long id) {
         pantallaService.desactivar(id);
