@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, ErrorHttp } from "../api/cliente";
-import type { Pantalla, Playlist, Sucursal } from "../api/tipos";
+import type { Pantalla, PantallaCreada, Playlist, Sucursal } from "../api/tipos";
+import TokenPantalla from "../componentes/TokenPantalla";
 
 /**
  * Detalle de sucursal: todas las pantallas de un local, su estado y que
@@ -16,6 +17,10 @@ export default function Pantallas() {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
+
+  const [nombreNueva, setNombreNueva] = useState("");
+  const [codigoNueva, setCodigoNueva] = useState(sugerirCodigo);
+  const [creada, setCreada] = useState<PantallaCreada | null>(null);
 
   useEffect(() => {
     api
@@ -53,6 +58,38 @@ export default function Pantallas() {
     setError(
       err instanceof ErrorHttp ? err.mensaje : "No se pudo conectar con el servidor",
     );
+  }
+
+  async function crearPantalla(e: import("react").FormEvent) {
+    e.preventDefault();
+    if (sucursalId === null) return;
+    setError(null);
+    try {
+      const respuesta = await api.post<PantallaCreada>("/api/pantallas", {
+        codigo: codigoNueva.trim().toUpperCase(),
+        nombre: nombreNueva,
+        sucursalId,
+      });
+      setPantallas((previas) => [...previas, respuesta.pantalla]);
+      setCreada(respuesta);
+      setNombreNueva("");
+      setCodigoNueva(sugerirCodigo());
+    } catch (err) {
+      mostrarError(err);
+    }
+  }
+
+  /** Invalida el token anterior en el acto. Sirve si se reemplaza el aparato. */
+  async function regenerarToken(pantalla: Pantalla) {
+    setError(null);
+    try {
+      const r = await api.post<{ tokenAcceso: string }>(
+        `/api/pantallas/${pantalla.id}/token`,
+      );
+      setCreada({ pantalla, tokenAcceso: r.tokenAcceso, aviso: "" });
+    } catch (err) {
+      mostrarError(err);
+    }
   }
 
   /**
@@ -130,6 +167,36 @@ export default function Pantallas() {
             </select>
           </label>
 
+          <form className="tarjeta fila-form" onSubmit={crearPantalla}>
+            <label className="crecer">
+              Nombre de la pantalla
+              <input
+                value={nombreNueva}
+                onChange={(e) => setNombreNueva(e.target.value)}
+                placeholder="TV Entrada"
+                required
+              />
+            </label>
+            <label className="crecer">
+              Código del dispositivo
+              <input
+                className="mono"
+                value={codigoNueva}
+                onChange={(e) => setCodigoNueva(e.target.value)}
+                required
+              />
+            </label>
+            <button
+              type="button"
+              className="secundario"
+              onClick={() => setCodigoNueva(sugerirCodigo())}
+              title="Sugerir otro código"
+            >
+              ↻
+            </button>
+            <button type="submit">Dar de alta</button>
+          </form>
+
           {pantallas.length === 0 ? (
             <div className="tarjeta vacio">
               <p>Esta sucursal no tiene pantallas.</p>
@@ -167,6 +234,7 @@ export default function Pantallas() {
                   <th>Código</th>
                   <th>Última conexión</th>
                   <th>Reproduciendo</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -193,6 +261,15 @@ export default function Pantallas() {
                         ))}
                       </select>
                     </td>
+                    <td>
+                      <button
+                        className="secundario"
+                        onClick={() => regenerarToken(p)}
+                        title="Genera un token nuevo e invalida el anterior"
+                      >
+                        Token
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -200,8 +277,30 @@ export default function Pantallas() {
           )}
         </>
       )}
+
+      {creada && (
+        <TokenPantalla
+          codigo={creada.pantalla.codigo}
+          token={creada.tokenAcceso}
+          onCerrar={() => setCreada(null)}
+        />
+      )}
     </>
   );
+}
+
+/**
+ * Propone un codigo libre con el formato GRN-XXXXXX.
+ *
+ * Lo sugiere el panel y no el dispositivo: asi el instalador copia el codigo y
+ * el token juntos de la misma pantalla, en vez de leer un codigo de una TV a
+ * tres metros de altura y despues volver al panel a buscar el token.
+ */
+function sugerirCodigo() {
+  const hex = Array.from({ length: 3 }, () =>
+    Math.floor(Math.random() * 256).toString(16).padStart(2, "0"),
+  ).join("");
+  return `GRN-${hex.toUpperCase()}`;
 }
 
 function formatearFecha(fecha: string | null) {

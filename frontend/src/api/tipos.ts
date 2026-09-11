@@ -89,3 +89,13 @@ export interface ItemPlaylist {
   tipo: TipoContenido;
   url: string;
 }
+
+/**
+ * Respuesta del alta de una pantalla. Es la unica vez que el token viaja en
+ * claro: el backend solo guarda su hash.
+ */
+export interface PantallaCreada {
+  pantalla: Pantalla;
+  tokenAcceso: string;
+  aviso: string;
+}
