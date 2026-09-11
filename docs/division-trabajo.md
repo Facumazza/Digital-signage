@@ -83,6 +83,8 @@ git checkout develop && git pull
 | Qué | Por qué importa |
 | --- | --- |
 | El secreto JWT está en el repo | Es un valor de desarrollo. En producción va por `SIGNAGE_JWT_SECRETO` |
+| La contraseña del admin es `admin1234` | Está en el repo. **Cambiarla antes de que el backend sea alcanzable desde Internet**: los escaneos automáticos prueban credenciales por defecto en minutos |
+| El backend solo corre en la LAN | La Etapa 8 pide probarlo entre dos redes. Se resuelve con un túnel (Cloudflare, ngrok) o desplegando en un servidor |
 | El token de pantalla viaja en texto plano | Va en un header, así que **sin HTTPS cualquiera en la red lo lee**. Obligatorio antes de la Etapa 8 |
 | Un token de pantalla no expira | Vale hasta que se regenere a mano. Alcanza para el MVP; una rotación automática es de V2 |
 | Sin índices en las columnas FK | PostgreSQL no los crea solo. Se va a notar cuando haya volumen (Etapa 9) |
