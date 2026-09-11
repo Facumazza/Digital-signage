@@ -13,10 +13,14 @@
 # ---- Java / Maven / Gradle ----
 target/
 build/
-!gradle/wrapper/gradle-wrapper.jar
 .gradle/
 *.class
 *.jar
+
+# Excepcion: el wrapper SI va al repo, es lo que permite compilar sin
+# tener Gradle instalado. La negacion tiene que ir despues del *.jar:
+# en gitignore gana la ultima regla que coincide.
+!**/gradle/wrapper/gradle-wrapper.jar
 *.war
 *.ear
 hs_err_pid*
@@ -76,3 +80,7 @@ logs/
 # Volcados de codigo generados a mano
 backend_codigo.txt
 *_codigo.txt
+
+# Android
+local.properties
+.cxx/

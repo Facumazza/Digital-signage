@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!-- Sin esto la pantalla se apaga sola y la carteleria deja de verse. -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+
+    <!-- Un TV Box no tiene pantalla tactil: sin declararlo como no requerido,
+         Play Store y algunos dispositivos consideran la app incompatible. -->
+    <uses-feature
+        android:name="android.hardware.touchscreen"
+        android:required="false" />
+
+    <uses-feature
+        android:name="android.software.leanback"
+        android:required="false" />
+
+    <application
+        android:allowBackup="false"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Tema.Player"
+        android:usesCleartextTraffic="true">
+
+        <activity
+            android:name=".PlayerActivity"
+            android:exported="true"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:screenOrientation="landscape">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <!-- LEANBACK_LAUNCHER es lo que hace que aparezca en el menu
+                     de un Android TV, que no muestra el launcher comun. -->
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Solo se abre la primera vez, cuando el dispositivo todavia no sabe
+             que pantalla es. -->
+        <activity
+            android:name=".ConfiguracionActivity"
+            android:exported="false"
+            android:theme="@style/Tema.Player" />
+    </application>
+
+</manifest>

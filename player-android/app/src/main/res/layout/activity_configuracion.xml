@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#14181D">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="32dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textColor="#E6EAEF"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:text="@string/configuracion_ayuda"
+            android:textColor="#939EAD"
+            android:textSize="14sp" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/servidor" />
+        <EditText
+            android:id="@+id/servidor"
+            style="@style/Campo"
+            android:hint="http://192.168.1.92:8080"
+            android:inputType="textUri"
+            android:autofillHints="" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/codigo" />
+        <EditText
+            android:id="@+id/codigo"
+            style="@style/Campo"
+            android:hint="GRN-A8K91X"
+            android:inputType="textCapCharacters"
+            android:autofillHints="" />
+
+        <TextView style="@style/Etiqueta" android:text="@string/token" />
+        <EditText
+            android:id="@+id/token"
+            style="@style/Campo"
+            android:hint="@string/token_hint"
+            android:inputType="text"
+            android:autofillHints="" />
+
+        <Button
+            android:id="@+id/guardar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/guardar" />
+
+    </LinearLayout>
+</ScrollView>

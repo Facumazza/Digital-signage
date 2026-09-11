@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Grenlus Player</string>
+    <string name="configuracion_ayuda">Datos que entrega el panel al dar de alta esta pantalla. Se cargan una sola vez.</string>
+    <string name="servidor">Dirección del servidor</string>
+    <string name="codigo">Código de la pantalla</string>
+    <string name="token">Token de acceso</string>
+    <string name="token_hint">el que mostró el panel al crear la pantalla</string>
+    <string name="guardar">Guardar y empezar</string>
+    <string name="faltan_datos">Faltan datos: servidor, código y token son obligatorios.</string>
+</resources>
