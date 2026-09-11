@@ -50,16 +50,31 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
     /**
      * Consulta al servidor y, si cambio la version, descarga lo que falte.
      *
-     * Devuelve la lista nueva solo cuando efectivamente cambio algo; null si
-     * ya estaba al dia o si no hubo forma de averiguarlo. Que devuelva null no
-     * es un error: significa "segui reproduciendo lo que tenias".
+     * Devuelve la lista nueva cuando cambio algo, una lista vacia cuando el
+     * servidor dice que no hay nada que mostrar, y null cuando ya estaba al
+     * dia. Null significa "segui reproduciendo lo que tenias"; la lista vacia
+     * significa "deja de mostrar".
      */
     fun sincronizar(): List<ContenidoLocal>? {
         val config = api.obtenerConfiguracion()
 
         if (config.vacia) {
-            // La pantalla existe pero todavia no tiene playlist asignada.
-            return null
+            // El servidor dice explicitamente que esta pantalla no tiene nada
+            // que mostrar: se corta la reproduccion.
+            //
+            // Esto es distinto de no poder consultar. Sin red se sigue
+            // reproduciendo (la excepcion la maneja quien llama); aca hubo
+            // respuesta y la respuesta fue "nada". Tratar los dos casos igual
+            // dejaba a la oficina sin forma de apagar una pantalla: sacarle la
+            // playlist no la detenia, y habia que ir hasta el local.
+            if (identidad.versionLocal != SIN_PLAYLIST) {
+                Log.i(TAG, "La pantalla se quedo sin playlist: se detiene")
+                File(carpeta, "playlist.txt").delete()
+                // Se vuelve a -1 para que, si mas adelante le reasignan una
+                // playlist, se considere nueva aunque sea la misma version.
+                identidad.versionLocal = SIN_PLAYLIST
+            }
+            return emptyList()
         }
 
         if (config.playlistVersion == identidad.versionLocal) {
@@ -125,5 +140,8 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
 
     private companion object {
         const val TAG = "Sincronizador"
+
+        /** Ninguna playlist bajada: cualquier version futura cuenta como nueva. */
+        const val SIN_PLAYLIST = -1L
     }
 }

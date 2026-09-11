@@ -95,11 +95,22 @@ class PlayerActivity : AppCompatActivity() {
                 // null significa "no cambio nada": se sigue reproduciendo sin
                 // interrumpir. Cortar la reproduccion en cada consulta seria
                 // un parpadeo cada 30 segundos.
-                if (nueva != null && nueva.isNotEmpty()) {
-                    Log.i(TAG, "Playlist nueva con ${nueva.size} contenidos")
-                    lista = nueva
-                    mostrarEstado(null)
-                    reproducirDesde(0)
+                when {
+                    nueva == null -> Unit
+
+                    // El servidor dijo que esta pantalla no tiene nada que
+                    // mostrar: se apaga. Es como la oficina detiene una TV.
+                    nueva.isEmpty() -> {
+                        Log.i(TAG, "Sin contenido asignado: se detiene")
+                        detener()
+                    }
+
+                    else -> {
+                        Log.i(TAG, "Playlist nueva con ${nueva.size} contenidos")
+                        lista = nueva
+                        mostrarEstado(null)
+                        reproducirDesde(0)
+                    }
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Sincronizacion fallida: ${e.message}")
@@ -157,6 +168,16 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun siguiente() = reproducirDesde(indice + 1)
+
+    /** Deja la pantalla en negro con un aviso, sin cerrar la app. */
+    private fun detener() {
+        lista = emptyList()
+        indice = 0
+        exo?.stop()
+        vista.video.visibility = View.GONE
+        vista.imagen.visibility = View.GONE
+        mostrarEstado("Sin contenido asignado")
+    }
 
     private fun mostrarEstado(texto: String?) {
         vista.estado.visibility = if (texto == null) View.GONE else View.VISIBLE
