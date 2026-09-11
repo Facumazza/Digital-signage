@@ -7,6 +7,7 @@ import com.grenlus.signage.entity.Playlist;
 import com.grenlus.signage.exception.RecursoNoEncontradoException;
 import com.grenlus.signage.repository.ClienteRepository;
 import com.grenlus.signage.repository.PlaylistRepository;
+import com.grenlus.signage.security.ControlAcceso;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,15 +18,20 @@ public class PlaylistService {
 
     private final PlaylistRepository playlistRepository;
     private final ClienteRepository clienteRepository;
+    private final ControlAcceso controlAcceso;
 
     public PlaylistService(PlaylistRepository playlistRepository,
-                           ClienteRepository clienteRepository) {
+                           ClienteRepository clienteRepository,
+                           ControlAcceso controlAcceso) {
         this.playlistRepository = playlistRepository;
         this.clienteRepository = clienteRepository;
+        this.controlAcceso = controlAcceso;
     }
 
     @Transactional
     public PlaylistResponseDto crear(PlaylistRequestDto request) {
+        controlAcceso.verificar(request.clienteId());
+
         Cliente cliente = clienteRepository.findById(request.clienteId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Cliente", request.clienteId()));
 
@@ -39,6 +45,7 @@ public class PlaylistService {
 
     @Transactional(readOnly = true)
     public List<PlaylistResponseDto> listarPorCliente(Long clienteId) {
+        controlAcceso.verificar(clienteId);
         return playlistRepository.findByClienteIdAndActivoTrue(clienteId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -70,8 +77,13 @@ public class PlaylistService {
     }
 
     private Playlist obtener(Long id) {
-        return playlistRepository.findById(id)
+        Playlist playlist = playlistRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Playlist", id));
+
+        // Toda operacion sobre una playlist pasa por aca, asi que alcanza con
+        // verificar en un solo lugar.
+        controlAcceso.verificar(playlist.getCliente().getId());
+        return playlist;
     }
 
     private PlaylistResponseDto toResponse(Playlist p) {

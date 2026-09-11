@@ -10,6 +10,7 @@ import com.grenlus.signage.exception.RecursoNoEncontradoException;
 import com.grenlus.signage.repository.ContenidoRepository;
 import com.grenlus.signage.repository.PlaylistContenidoRepository;
 import com.grenlus.signage.repository.PlaylistRepository;
+import com.grenlus.signage.security.ControlAcceso;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,17 +31,21 @@ public class PlaylistContenidoService {
     private final PlaylistContenidoRepository playlistContenidoRepository;
     private final PlaylistRepository playlistRepository;
     private final ContenidoRepository contenidoRepository;
+    private final ControlAcceso controlAcceso;
 
     public PlaylistContenidoService(PlaylistContenidoRepository playlistContenidoRepository,
                                     PlaylistRepository playlistRepository,
-                                    ContenidoRepository contenidoRepository) {
+                                    ContenidoRepository contenidoRepository,
+                                    ControlAcceso controlAcceso) {
         this.playlistContenidoRepository = playlistContenidoRepository;
         this.playlistRepository = playlistRepository;
         this.contenidoRepository = contenidoRepository;
+        this.controlAcceso = controlAcceso;
     }
 
     @Transactional(readOnly = true)
     public List<PlaylistContenidoResponseDto> listarPorPlaylist(Long playlistId) {
+        playlistVerificada(playlistId);
         return playlistContenidoRepository.findByPlaylistIdOrderByOrdenAsc(playlistId)
                 .stream().map(this::toResponse).toList();
     }
@@ -52,11 +57,14 @@ public class PlaylistContenidoService {
 
     @Transactional
     public PlaylistContenidoResponseDto agregar(PlaylistContenidoRequestDto request) {
-        Playlist playlist = playlistRepository.findById(request.playlistId())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Playlist", request.playlistId()));
+        Playlist playlist = playlistVerificada(request.playlistId());
 
         Contenido contenido = contenidoRepository.findById(request.contenidoId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Contenido", request.contenidoId()));
+
+        // El contenido tambien: si no, se podria meter el video de otra
+        // empresa en la playlist propia.
+        controlAcceso.verificar(contenido.getCliente().getId());
 
         PlaylistContenido item = new PlaylistContenido();
         item.setPlaylist(playlist);
@@ -99,8 +107,18 @@ public class PlaylistContenidoService {
     }
 
     private PlaylistContenido obtener(Long id) {
-        return playlistContenidoRepository.findById(id)
+        PlaylistContenido item = playlistContenidoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Item de playlist", id));
+
+        controlAcceso.verificar(item.getPlaylist().getCliente().getId());
+        return item;
+    }
+
+    private Playlist playlistVerificada(Long playlistId) {
+        Playlist playlist = playlistRepository.findById(playlistId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Playlist", playlistId));
+        controlAcceso.verificar(playlist.getCliente().getId());
+        return playlist;
     }
 
     private PlaylistContenidoResponseDto toResponse(PlaylistContenido item) {

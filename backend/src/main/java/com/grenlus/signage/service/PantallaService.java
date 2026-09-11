@@ -13,6 +13,7 @@ import com.grenlus.signage.repository.PantallaRepository;
 import com.grenlus.signage.repository.PlaylistRepository;
 import com.grenlus.signage.security.TokensPantalla;
 import com.grenlus.signage.repository.SucursalRepository;
+import com.grenlus.signage.security.ControlAcceso;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,13 +33,16 @@ public class PantallaService {
     private final PantallaRepository pantallaRepository;
     private final SucursalRepository sucursalRepository;
     private final PlaylistRepository playlistRepository;
+    private final ControlAcceso controlAcceso;
 
     public PantallaService(PantallaRepository pantallaRepository,
                            SucursalRepository sucursalRepository,
-                           PlaylistRepository playlistRepository) {
+                           PlaylistRepository playlistRepository,
+                           ControlAcceso controlAcceso) {
         this.pantallaRepository = pantallaRepository;
         this.sucursalRepository = sucursalRepository;
         this.playlistRepository = playlistRepository;
+        this.controlAcceso = controlAcceso;
     }
 
     /**
@@ -51,8 +55,7 @@ public class PantallaService {
             throw new ReglaNegocioException(
                     "Ya existe una pantalla con el codigo " + request.codigo());
         }
-        Sucursal sucursal = sucursalRepository.findById(request.sucursalId())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Sucursal", request.sucursalId()));
+        Sucursal sucursal = sucursalVerificada(request.sucursalId());
 
         String token = TokensPantalla.generar();
         Pantalla pantalla = Pantalla.builder()
@@ -67,6 +70,7 @@ public class PantallaService {
 
     @Transactional(readOnly = true)
     public List<PantallaResponseDto> listarPorSucursal(Long sucursalId) {
+        sucursalVerificada(sucursalId);
         return pantallaRepository.findBySucursalId(sucursalId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -86,8 +90,7 @@ public class PantallaService {
             throw new ReglaNegocioException(
                     "Ya existe una pantalla con el codigo " + request.codigo());
         }
-        Sucursal sucursal = sucursalRepository.findById(request.sucursalId())
-                .orElseThrow(() -> new RecursoNoEncontradoException("Sucursal", request.sucursalId()));
+        Sucursal sucursal = sucursalVerificada(request.sucursalId());
 
         pantalla.setCodigo(request.codigo());
         pantalla.setNombre(request.nombre());
@@ -110,6 +113,11 @@ public class PantallaService {
         }
         Playlist playlist = playlistRepository.findById(request.playlistId())
                 .orElseThrow(() -> new RecursoNoEncontradoException("Playlist", request.playlistId()));
+
+        // Sin esto se le podria asignar a una pantalla la playlist de otra
+        // empresa, y esa TV terminaria mostrando publicidad ajena.
+        controlAcceso.verificar(playlist.getCliente().getId());
+
         pantalla.setPlaylist(playlist);
         return toResponse(pantalla);
     }
@@ -131,8 +139,24 @@ public class PantallaService {
     }
 
     private Pantalla obtener(Long id) {
-        return pantallaRepository.findById(id)
+        Pantalla pantalla = pantallaRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Pantalla", id));
+
+        controlAcceso.verificar(clienteDe(pantalla.getSucursal()));
+        return pantalla;
+    }
+
+    private Sucursal sucursalVerificada(Long sucursalId) {
+        Sucursal sucursal = sucursalRepository.findById(sucursalId)
+                .orElseThrow(() -> new RecursoNoEncontradoException("Sucursal", sucursalId));
+        controlAcceso.verificar(clienteDe(sucursal));
+        return sucursal;
+    }
+
+    /** Una pantalla pertenece al cliente de su sucursal. */
+    private Long clienteDe(Sucursal sucursal) {
+        return sucursal == null || sucursal.getCliente() == null
+                ? null : sucursal.getCliente().getId();
     }
 
     /** ONLINE/OFFLINE se calcula, no se guarda. Ver el comentario en Pantalla. */

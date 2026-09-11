@@ -9,6 +9,7 @@ import com.grenlus.signage.exception.RecursoNoEncontradoException;
 import com.grenlus.signage.exception.ReglaNegocioException;
 import com.grenlus.signage.repository.ClienteRepository;
 import com.grenlus.signage.repository.ContenidoRepository;
+import com.grenlus.signage.security.ControlAcceso;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -30,13 +31,16 @@ public class ContenidoService {
 
     private final ContenidoRepository contenidoRepository;
     private final ClienteRepository clienteRepository;
+    private final ControlAcceso controlAcceso;
     private final Path directorioStorage;
 
     public ContenidoService(ContenidoRepository contenidoRepository,
                             ClienteRepository clienteRepository,
+                            ControlAcceso controlAcceso,
                             @Value("${signage.storage.ruta}") String rutaStorage) {
         this.contenidoRepository = contenidoRepository;
         this.clienteRepository = clienteRepository;
+        this.controlAcceso = controlAcceso;
         this.directorioStorage = Path.of(rutaStorage).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.directorioStorage);
@@ -55,6 +59,8 @@ public class ContenidoService {
     @Transactional
     public ContenidoResponseDto subir(MultipartFile archivo, String nombre,
                                       Long clienteId, Long duracionSegundos) {
+        controlAcceso.verificar(clienteId);
+
         if (archivo == null || archivo.isEmpty()) {
             throw new ReglaNegocioException("El archivo es obligatorio");
         }
@@ -87,6 +93,7 @@ public class ContenidoService {
 
     @Transactional(readOnly = true)
     public List<ContenidoResponseDto> listarPorCliente(Long clienteId) {
+        controlAcceso.verificar(clienteId);
         return contenidoRepository.findByClienteIdAndActivoTrue(clienteId).stream()
                 .map(this::toResponse)
                 .toList();
@@ -131,8 +138,13 @@ public class ContenidoService {
     }
 
     private Contenido obtener(Long id) {
-        return contenidoRepository.findById(id)
+        Contenido contenido = contenidoRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Contenido", id));
+
+        // El player no tiene sesion de panel, asi que para el esta verificacion
+        // no aplica: su acceso lo controla PlayerService con el token.
+        controlAcceso.verificar(contenido.getCliente().getId());
+        return contenido;
     }
 
     private TipoContenido deducirTipo(String contentType) {

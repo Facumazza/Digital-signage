@@ -7,6 +7,7 @@ import com.grenlus.signage.entity.Sucursal;
 import com.grenlus.signage.exception.RecursoNoEncontradoException;
 import com.grenlus.signage.repository.ClienteRepository;
 import com.grenlus.signage.repository.SucursalRepository;
+import com.grenlus.signage.security.ControlAcceso;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,16 +18,26 @@ public class SucursalService {
 
     private final SucursalRepository sucursalRepository;
     private final ClienteRepository clienteRepository;
+    private final ControlAcceso controlAcceso;
 
     public SucursalService(SucursalRepository sucursalRepository,
-                           ClienteRepository clienteRepository) {
+                           ClienteRepository clienteRepository,
+                           ControlAcceso controlAcceso) {
         this.sucursalRepository = sucursalRepository;
         this.clienteRepository = clienteRepository;
+        this.controlAcceso = controlAcceso;
     }
 
     @Transactional(readOnly = true)
     public List<SucursalResponseDto> listarTodas() {
-        return sucursalRepository.findAll().stream().map(this::toResponse).toList();
+        Long propio = controlAcceso.clienteDelUsuario();
+
+        // Un ADMIN_CLIENTE ve solo sus locales. El SUPER_ADMIN, todos.
+        return sucursalRepository.findAll().stream()
+                .filter(s -> propio == null
+                        || (s.getCliente() != null && propio.equals(s.getCliente().getId())))
+                .map(this::toResponse)
+                .toList();
     }
 
     @Transactional(readOnly = true)
@@ -36,6 +47,8 @@ public class SucursalService {
 
     @Transactional
     public SucursalResponseDto crear(SucursalRequestDto request, Long clienteId) {
+        controlAcceso.verificar(clienteId);
+
         Cliente cliente = clienteRepository.findById(clienteId)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Cliente", clienteId));
 
@@ -69,8 +82,12 @@ public class SucursalService {
     }
 
     private Sucursal obtener(Long id) {
-        return sucursalRepository.findById(id)
+        Sucursal sucursal = sucursalRepository.findById(id)
                 .orElseThrow(() -> new RecursoNoEncontradoException("Sucursal", id));
+
+        controlAcceso.verificar(
+                sucursal.getCliente() == null ? null : sucursal.getCliente().getId());
+        return sucursal;
     }
 
     private SucursalResponseDto toResponse(Sucursal s) {
