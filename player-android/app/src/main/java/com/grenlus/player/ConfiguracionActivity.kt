@@ -2,18 +2,18 @@ package com.grenlus.player
 
 import android.content.Intent
 import android.os.Bundle
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.grenlus.player.databinding.ActivityConfiguracionBinding
 import com.grenlus.player.datos.Identidad
 
 /**
- * Configuracion inicial del dispositivo, la unica pantalla con la que alguien
- * interactua.
+ * Configuracion del dispositivo: servidor, codigo y token.
  *
- * Se usa una sola vez, al instalar: el instalador carga la direccion del
- * servidor y el codigo y token que le dio el panel al dar de alta la pantalla.
- * Despues no se vuelve a ver nunca.
+ * Se abre sola la primera vez, y despues manteniendo apretada la pantalla del
+ * player. Antes no habia forma de volver aca: para corregir un servidor mal
+ * tipeado habia que borrar los datos de la app y pedir un token nuevo.
  */
 class ConfiguracionActivity : AppCompatActivity() {
 
@@ -25,29 +25,50 @@ class ConfiguracionActivity : AppCompatActivity() {
         setContentView(vista.root)
 
         val identidad = Identidad(this)
-        vista.servidor.setText(identidad.servidor.ifBlank { "http://192.168.1.92:8080" })
+        val yaConfigurada = identidad.configurada
+
+        vista.servidor.setText(identidad.servidor.ifBlank { "http://192.168.1.36:8080" })
         vista.codigo.setText(identidad.codigo)
-        vista.token.setText(identidad.token)
+
+        // El token nunca se muestra, ni siquiera precargado. Esta pantalla se
+        // abre tocando la TV de un local, donde puede estar mirando cualquiera.
+        // Si el campo queda vacio se conserva el que ya tenia.
+        if (yaConfigurada) {
+            vista.token.setHint(R.string.token_mantener)
+            vista.cancelar.visibility = View.VISIBLE
+        }
+
+        vista.cancelar.setOnClickListener { volverAlPlayer() }
 
         vista.guardar.setOnClickListener {
             val servidor = vista.servidor.text.toString().trim()
             val codigo = vista.codigo.text.toString().trim()
-            val token = vista.token.text.toString().trim()
+            val tokenNuevo = vista.token.text.toString().trim()
+            val token = tokenNuevo.ifBlank { identidad.token }
 
             if (servidor.isBlank() || codigo.isBlank() || token.isBlank()) {
                 Toast.makeText(this, R.string.faltan_datos, Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
 
+            // Si cambio el codigo, este aparato pasa a ser otra pantalla: lo
+            // bajado corresponde a la anterior y hay que olvidarlo. Si solo
+            // cambio el servidor o el token, es la misma pantalla y conviene
+            // conservar lo descargado para no quedar en negro mientras resincroniza.
+            if (codigo != identidad.codigo) {
+                identidad.versionLocal = -1
+            }
+
             identidad.servidor = servidor
             identidad.codigo = codigo
             identidad.token = token
-            // Se olvida lo bajado: el dispositivo puede estar cambiando de
-            // pantalla o de servidor, y la playlist vieja ya no aplica.
-            identidad.versionLocal = -1
 
-            startActivity(Intent(this, PlayerActivity::class.java))
-            finish()
+            volverAlPlayer()
         }
+    }
+
+    private fun volverAlPlayer() {
+        startActivity(Intent(this, PlayerActivity::class.java))
+        finish()
     }
 }

@@ -3,6 +3,15 @@ plugins {
     alias(libs.plugins.kotlin.android)
 }
 
+// Si el repo vive dentro de OneDrive (o Dropbox, Drive), el cliente de
+// sincronizacion bloquea los archivos intermedios mientras Gradle los escribe
+// y la compilacion falla con AccessDeniedException. Definiendo
+// GRENLUS_BUILD_DIR, el build va a una carpeta fuera de la sincronizada.
+// Sin la variable, el comportamiento es el de siempre.
+System.getenv("GRENLUS_BUILD_DIR")?.let { dir ->
+    layout.buildDirectory.set(file("$dir/app"))
+}
+
 android {
     namespace = "com.grenlus.player"
     compileSdk = 35

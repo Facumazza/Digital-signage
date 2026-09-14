@@ -169,6 +169,59 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun siguiente() = reproducirDesde(indice + 1)
 
+    /*
+     * Abrir la configuracion manteniendo apretado.
+     *
+     * Cinco segundos y no el toque largo de Android (medio segundo): la TV esta
+     * en un local, y alguien apoyando la mano en un totem no deberia abrirla
+     * por accidente. Funciona con el dedo en un celular y con el boton OK del
+     * control remoto en un TV Box, que no tiene pantalla tactil.
+     */
+
+    private val abrirConfiguracion = Runnable {
+        android.widget.Toast.makeText(
+            this, R.string.abriendo_configuracion, android.widget.Toast.LENGTH_SHORT
+        ).show()
+        startActivity(Intent(this, ConfiguracionActivity::class.java))
+        finish()
+    }
+
+    override fun dispatchTouchEvent(evento: android.view.MotionEvent): Boolean {
+        // Si la app arranco sin configurar, onCreate redirige antes de crear la
+        // vista: sin esta guarda un toque en ese instante la haria crashear.
+        if (!::vista.isInitialized) return super.dispatchTouchEvent(evento)
+        when (evento.actionMasked) {
+            android.view.MotionEvent.ACTION_DOWN ->
+                vista.root.postDelayed(abrirConfiguracion, MANTENER_PARA_CONFIGURAR_MS)
+            android.view.MotionEvent.ACTION_UP,
+            android.view.MotionEvent.ACTION_CANCEL ->
+                vista.root.removeCallbacks(abrirConfiguracion)
+        }
+        return super.dispatchTouchEvent(evento)
+    }
+
+    override fun onKeyDown(codigo: Int, evento: android.view.KeyEvent): Boolean {
+        // repeatCount == 0 es la primera pulsacion: mientras se mantiene,
+        // Android repite el evento y no hay que reprogramar el temporizador.
+        if (esBotonOk(codigo) && evento.repeatCount == 0 && ::vista.isInitialized) {
+            vista.root.postDelayed(abrirConfiguracion, MANTENER_PARA_CONFIGURAR_MS)
+            return true
+        }
+        return super.onKeyDown(codigo, evento)
+    }
+
+    override fun onKeyUp(codigo: Int, evento: android.view.KeyEvent): Boolean {
+        if (esBotonOk(codigo) && ::vista.isInitialized) {
+            vista.root.removeCallbacks(abrirConfiguracion)
+            return true
+        }
+        return super.onKeyUp(codigo, evento)
+    }
+
+    private fun esBotonOk(codigo: Int) =
+        codigo == android.view.KeyEvent.KEYCODE_DPAD_CENTER ||
+            codigo == android.view.KeyEvent.KEYCODE_ENTER
+
     /** Deja la pantalla en negro con un aviso, sin cerrar la app. */
     private fun detener() {
         lista = emptyList()
@@ -194,6 +247,7 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        if (::vista.isInitialized) vista.root.removeCallbacks(abrirConfiguracion)
         exo?.release()
         exo = null
         super.onDestroy()
@@ -201,5 +255,6 @@ class PlayerActivity : AppCompatActivity() {
 
     private companion object {
         const val TAG = "PlayerActivity"
+        const val MANTENER_PARA_CONFIGURAR_MS = 5_000L
     }
 }

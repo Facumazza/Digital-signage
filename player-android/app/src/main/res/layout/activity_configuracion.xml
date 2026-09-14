@@ -57,5 +57,14 @@
             android:layout_marginTop="24dp"
             android:text="@string/guardar" />
 
+        <Button
+            android:id="@+id/cancelar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/cancelar"
+            android:visibility="gone"
+            style="?android:attr/borderlessButtonStyle" />
+
     </LinearLayout>
 </ScrollView>

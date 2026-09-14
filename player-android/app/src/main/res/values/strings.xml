@@ -7,5 +7,8 @@
     <string name="token">Token de acceso</string>
     <string name="token_hint">el que mostró el panel al crear la pantalla</string>
     <string name="guardar">Guardar y empezar</string>
+    <string name="token_mantener">dejalo vacío para conservar el actual</string>
+    <string name="cancelar">Cancelar</string>
+    <string name="abriendo_configuracion">Abriendo configuración</string>
     <string name="faltan_datos">Faltan datos: servidor, código y token son obligatorios.</string>
 </resources>
