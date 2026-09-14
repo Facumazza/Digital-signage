@@ -423,3 +423,87 @@ input[type="file"] {
 .interruptor.prendido .perilla {
   transform: translateX(18px);
 }
+
+/* =========================================================
+   MINI REPRODUCTOR DE PLAYLIST
+   ========================================================= */
+
+.mini-reproductor {
+  width: 220px;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #111;
+  border: 1px solid #2a2a2a;
+}
+
+.mini-medio {
+  display: block;
+  width: 100%;
+  height: 124px;
+  object-fit: contain;
+  background: #000;
+}
+
+.mini-medio-cargando,
+.mini-medio-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 124px;
+  padding: 12px;
+  box-sizing: border-box;
+  color: #aaa;
+  font-size: 13px;
+  text-align: center;
+}
+
+.mini-medio-error {
+  color: #e57373;
+}
+
+.mini-reproductor-info {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 9px;
+  color: #ddd;
+  font-size: 11px;
+  background: #181818;
+}
+
+.mini-reproductor-info span:first-child {
+  flex-shrink: 0;
+  color: #999;
+  font-family: monospace;
+}
+
+.mini-reproductor-info span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mini-reproductor-vacio {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 124px;
+  box-sizing: border-box;
+  padding: 12px;
+  color: #888;
+  font-size: 13px;
+  text-align: center;
+}
+
+.mini-reproductor-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 124px;
+  box-sizing: border-box;
+  padding: 12px;
+  color: #e57373;
+  font-size: 13px;
+  text-align: center;
+}

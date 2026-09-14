@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, ErrorHttp } from "../api/cliente";
 import type { Pantalla, PantallaCreada, Playlist, Sucursal } from "../api/tipos";
 import TokenPantalla from "../componentes/TokenPantalla";
+import MiniReproductor from "../componentes/MiniReproductor";
 
 /**
  * Detalle de sucursal: todas las pantallas de un local, su estado y que
@@ -254,7 +255,8 @@ export default function Pantallas() {
                   <th>Encendida</th>
                   <th>Código</th>
                   <th>Última conexión</th>
-                  <th>Reproduciendo</th>
+                  <th>Playlist</th>
+                  <th>Vista previa</th>
                   <th></th>
                 </tr>
               </thead>
@@ -291,6 +293,9 @@ export default function Pantallas() {
                           </option>
                         ))}
                       </select>
+                    </td>
+                    <td>
+                      <MiniReproductor playlistId={p.playlistId} />
                     </td>
                     <td>
                       <button
