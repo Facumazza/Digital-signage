@@ -38,6 +38,9 @@ class PlayerActivity : AppCompatActivity() {
     private var lista: List<ContenidoLocal> = emptyList()
     private var indice = 0
 
+    /** La oficina la apago: se muestra negro aunque haya contenido listo. */
+    private var apagada = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -62,11 +65,16 @@ class PlayerActivity : AppCompatActivity() {
         // Arranca con lo que ya estaba bajado: si no hay Internet al prender,
         // igual muestra algo en vez de quedarse en negro esperando.
         lista = sincronizador.contenidosEnDisco()
-        if (lista.isNotEmpty()) {
-            mostrarEstado(null)
-            reproducirDesde(0)
-        } else {
-            mostrarEstado("Esperando contenido…")
+        // Si quedo apagada, arranca en negro: un corte de luz a la noche no
+        // deberia encender la carteleria hasta que la oficina lo decida.
+        apagada = !identidad.encendida
+        when {
+            apagada -> mostrarEstado(null)
+            lista.isNotEmpty() -> {
+                mostrarEstado(null)
+                reproducirDesde(0)
+            }
+            else -> mostrarEstado("Esperando contenido…")
         }
 
         lanzarHeartbeat()
@@ -112,6 +120,8 @@ class PlayerActivity : AppCompatActivity() {
                         reproducirDesde(0)
                     }
                 }
+
+                aplicarEncendido(sincronizador.encendida)
             } catch (e: Exception) {
                 Log.w(TAG, "Sincronizacion fallida: ${e.message}")
                 if (lista.isEmpty()) mostrarEstado("Sin conexion con el servidor")
@@ -121,7 +131,9 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun reproducirDesde(posicion: Int) {
-        if (lista.isEmpty()) return
+        // Apagada no se muestra nada, aunque lo pida el temporizador de una
+        // imagen que estaba en pantalla al momento de apagar.
+        if (lista.isEmpty() || apagada) return
         indice = posicion % lista.size
         val actual = lista[indice]
 
@@ -229,7 +241,34 @@ class PlayerActivity : AppCompatActivity() {
         exo?.stop()
         vista.video.visibility = View.GONE
         vista.imagen.visibility = View.GONE
-        mostrarEstado("Sin contenido asignado")
+        if (!apagada) mostrarEstado("Sin contenido asignado")
+    }
+
+    /**
+     * Pasa entre encendida y apagada solo cuando el estado cambia, para no
+     * reiniciar la reproduccion en cada consulta.
+     *
+     * Apagar no borra nada: la lista y los archivos quedan, y al prender se
+     * retoma desde donde estaba sin descargar de nuevo.
+     */
+    private fun aplicarEncendido(encendida: Boolean) {
+        if (!encendida && !apagada) {
+            Log.i(TAG, "Apagada desde el panel")
+            apagada = true
+            exo?.pause()
+            vista.video.visibility = View.GONE
+            vista.imagen.visibility = View.GONE
+            mostrarEstado(null)
+        } else if (encendida && apagada) {
+            Log.i(TAG, "Encendida desde el panel")
+            apagada = false
+            if (lista.isEmpty()) {
+                mostrarEstado("Esperando contenido…")
+            } else {
+                mostrarEstado(null)
+                reproducirDesde(indice)
+            }
+        }
     }
 
     private fun mostrarEstado(texto: String?) {

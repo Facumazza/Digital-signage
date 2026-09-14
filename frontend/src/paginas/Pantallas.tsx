@@ -79,6 +79,26 @@ export default function Pantallas() {
     }
   }
 
+  /**
+   * Prende o apaga la pantalla. No toca la playlist: al volver a prenderla
+   * retoma lo que tenía. El player lo aplica en su próxima consulta, hasta 30
+   * segundos después.
+   */
+  async function alternarEncendido(pantalla: Pantalla) {
+    setError(null);
+    try {
+      const actualizada = await api.put<Pantalla>(
+        `/api/pantallas/${pantalla.id}/encendida`,
+        { encendida: !pantalla.encendida },
+      );
+      setPantallas((previas) =>
+        previas.map((p) => (p.id === actualizada.id ? actualizada : p)),
+      );
+    } catch (err) {
+      mostrarError(err);
+    }
+  }
+
   /** Invalida el token anterior en el acto. Sirve si se reemplaza el aparato. */
   async function regenerarToken(pantalla: Pantalla) {
     setError(null);
@@ -231,6 +251,7 @@ export default function Pantallas() {
                 <tr>
                   <th>Estado</th>
                   <th>Pantalla</th>
+                  <th>Encendida</th>
                   <th>Código</th>
                   <th>Última conexión</th>
                   <th>Reproduciendo</th>
@@ -246,6 +267,16 @@ export default function Pantallas() {
                       </span>
                     </td>
                     <td>{p.nombre}</td>
+                    <td>
+                      <button
+                        className={`interruptor ${p.encendida ? "prendido" : ""}`}
+                        onClick={() => alternarEncendido(p)}
+                        title={p.encendida ? "Apagar la pantalla" : "Prender la pantalla"}
+                        aria-pressed={p.encendida}
+                      >
+                        <span className="perilla" />
+                      </button>
+                    </td>
                     <td className="mono">{p.codigo}</td>
                     <td className="sutil">{formatearFecha(p.ultimaConexion)}</td>
                     <td>

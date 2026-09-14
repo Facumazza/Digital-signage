@@ -60,6 +60,20 @@ public class Pantalla {
     @Column(nullable = false)
     private Boolean activo;
 
+    /**
+     * Si la pantalla debe mostrar contenido o quedar en negro.
+     *
+     * No es lo mismo que activo: una pantalla dada de baja esta fuera de
+     * servicio; una apagada esta en servicio pero en pausa, por ejemplo fuera
+     * del horario del local. Tampoco es lo mismo que sacarle la playlist: al
+     * volver a prenderla retoma lo que tenia, sin reasignar ni descargar nada.
+     *
+     * El default en la columna no es decorativo: la tabla ya tiene filas, y un
+     * NOT NULL sin default hace fallar el ALTER TABLE en PostgreSQL.
+     */
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private Boolean encendida;
+
     /** Hash del token con el que el player se identifica. Nullable solo por las
      *  pantallas dadas de alta antes de que existiera: esas tienen que
      *  regenerarlo. Nunca sale por la API. */
@@ -82,6 +96,9 @@ public class Pantalla {
     void alCrear() {
         if (activo == null) {
             activo = true;
+        }
+        if (encendida == null) {
+            encendida = true;
         }
     }
 }

@@ -47,7 +47,8 @@ public class PlayerService {
         // error: se le responde que no hay nada que reproducir, y el player
         // sigue consultando hasta que la oficina le asigne una.
         if (playlist == null || !Boolean.TRUE.equals(pantalla.getActivo())) {
-            return new PlayerConfigResponse(pantalla.getCodigo(), null, null, List.of());
+            return new PlayerConfigResponse(
+                    pantalla.getCodigo(), null, null, estaEncendida(pantalla), List.of());
         }
 
         // Ordenado por la base, no en memoria: el repositorio existe para esto.
@@ -67,10 +68,13 @@ public class PlayerService {
                                 item.getDuracionVisualizacion()))
                         .toList();
 
+        // Apagada se mandan igual los contenidos: el player los conserva y al
+        // volver a prenderla retoma al instante, sin descargar nada.
         return new PlayerConfigResponse(
                 pantalla.getCodigo(),
                 playlist.getId(),
                 playlist.getVersion(),
+                estaEncendida(pantalla),
                 contenidos);
     }
 
@@ -102,6 +106,11 @@ public class PlayerService {
                 .findFirst()
                 .orElseThrow(() -> new RecursoNoEncontradoException(
                         "El contenido " + contenidoId + " no esta en la playlist de esta pantalla"));
+    }
+
+    /** Null solo en filas previas a la columna; se trata como encendida. */
+    private boolean estaEncendida(Pantalla pantalla) {
+        return !Boolean.FALSE.equals(pantalla.getEncendida());
     }
 
     /**

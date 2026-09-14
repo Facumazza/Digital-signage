@@ -16,5 +16,8 @@ public class PlayerConfigResponse {
     private String pantalla;
     private Long playlistId;
     private Long playlistVersion;
+
+    /** false = mostrar negro, conservando lo descargado para retomar al instante. */
+    private Boolean encendida;
     private List<ContenidoPlayerDto> contenidos;
 }

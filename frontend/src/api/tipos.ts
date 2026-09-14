@@ -38,6 +38,8 @@ export interface Pantalla {
   estado: EstadoPantalla;
   ultimaConexion: string | null;
   activo: boolean;
+  /** false = la oficina la apagó: muestra negro pero sigue conectada. */
+  encendida: boolean;
   sucursalId: number;
   sucursalNombre: string;
   playlistId: number | null;

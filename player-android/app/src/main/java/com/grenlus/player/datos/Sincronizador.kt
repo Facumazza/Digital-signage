@@ -58,6 +58,10 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
     fun sincronizar(): List<ContenidoLocal>? {
         val config = api.obtenerConfiguracion()
 
+        // Primero que nada: prender o apagar no cambia la version, asi que si
+        // esto quedara despues del chequeo de version nunca se aplicaria.
+        identidad.encendida = config.encendida
+
         if (config.vacia) {
             // El servidor dice explicitamente que esta pantalla no tiene nada
             // que mostrar: se corta la reproduccion.
@@ -107,6 +111,9 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
 
         return locales
     }
+
+    /** Estado de encendido segun la ultima respuesta del servidor. */
+    val encendida: Boolean get() = identidad.encendida
 
     fun enviarHeartbeat() = api.enviarHeartbeat()
 

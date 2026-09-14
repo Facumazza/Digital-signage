@@ -1,6 +1,7 @@
 package com.grenlus.signage.controller;
 
 import com.grenlus.signage.dtos.AsignarPlaylistDto;
+import com.grenlus.signage.dtos.EncendidoDto;
 import com.grenlus.signage.dtos.PantallaCreadaDto;
 import com.grenlus.signage.dtos.PantallaRequestDto;
 import com.grenlus.signage.dtos.PantallaResponseDto;
@@ -74,6 +75,13 @@ public class PantallaController {
             @PathVariable Long sucursalId,
             @RequestBody AsignarPlaylistDto request) {
         return pantallaService.asignarPlaylistASucursal(sucursalId, request);
+    }
+
+    /** Prende o apaga la pantalla. El player lo aplica en hasta 30 segundos. */
+    @PutMapping("/{id}/encendida")
+    public PantallaResponseDto cambiarEncendido(@PathVariable Long id,
+                                                @Valid @RequestBody EncendidoDto request) {
+        return pantallaService.cambiarEncendido(id, request);
     }
 
     @DeleteMapping("/{id}")

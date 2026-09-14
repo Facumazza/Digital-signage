@@ -19,6 +19,7 @@ public record PantallaResponseDto(
         String estado,
         LocalDateTime ultimaConexion,
         Boolean activo,
+        Boolean encendida,
         Long sucursalId,
         String sucursalNombre,
         Long playlistId,

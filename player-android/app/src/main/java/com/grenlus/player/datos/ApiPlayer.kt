@@ -19,6 +19,8 @@ data class ContenidoRemoto(
 data class Configuracion(
     val playlistId: Long?,
     val playlistVersion: Long?,
+    /** false = la oficina la apago: mostrar negro, sin perder lo descargado. */
+    val encendida: Boolean,
     val contenidos: List<ContenidoRemoto>,
 ) {
     val vacia: Boolean get() = playlistVersion == null || contenidos.isEmpty()
@@ -55,6 +57,9 @@ class ApiPlayer(private val identidad: Identidad) {
         return Configuracion(
             playlistId = json.optLongOrNull("playlistId"),
             playlistVersion = json.optLongOrNull("playlistVersion"),
+            // Si falta el campo (backend anterior a esta funcion) se asume
+            // encendida: preferible mostrar contenido a quedar en negro sin motivo.
+            encendida = json.optBoolean("encendida", true),
             contenidos = buildList {
                 for (i in 0 until (items?.length() ?: 0)) {
                     val item = items!!.getJSONObject(i)

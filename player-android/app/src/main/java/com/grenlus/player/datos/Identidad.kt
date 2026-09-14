@@ -36,6 +36,15 @@ class Identidad(contexto: Context) {
         get() = prefs.getLong(VERSION, -1)
         set(valor) = prefs.edit().putLong(VERSION, valor).apply()
 
+    /**
+     * Ultimo estado de encendido recibido. Se persiste para que una pantalla
+     * apagada que se reinicia (corte de luz a la noche) no muestre contenido
+     * hasta la primera consulta, que sin red podria no llegar nunca.
+     */
+    var encendida: Boolean
+        get() = prefs.getBoolean(ENCENDIDA, true)
+        set(valor) = prefs.edit().putBoolean(ENCENDIDA, valor).apply()
+
     val configurada: Boolean
         get() = servidor.isNotBlank() && codigo.isNotBlank() && token.isNotBlank()
 
@@ -48,5 +57,6 @@ class Identidad(contexto: Context) {
         const val CODIGO = "codigo"
         const val TOKEN = "token"
         const val VERSION = "versionLocal"
+        const val ENCENDIDA = "encendida"
     }
 }

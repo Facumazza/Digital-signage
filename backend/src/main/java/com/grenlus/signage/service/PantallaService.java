@@ -1,6 +1,7 @@
 package com.grenlus.signage.service;
 
 import com.grenlus.signage.dtos.AsignarPlaylistDto;
+import com.grenlus.signage.dtos.EncendidoDto;
 import com.grenlus.signage.dtos.PantallaRequestDto;
 import com.grenlus.signage.dtos.PantallaCreadaDto;
 import com.grenlus.signage.dtos.PantallaResponseDto;
@@ -166,6 +167,21 @@ public class PantallaService {
         return pantallas.stream().map(this::toResponse).toList();
     }
 
+    /**
+     * Prende o apaga una pantalla.
+     *
+     * Como todo lo demas, define el estado deseado y nada mas: el player se
+     * entera en su proxima consulta, asi que tarda hasta 30 segundos en verse.
+     * No toca la playlist ni la version, por eso al prenderla retoma lo que
+     * tenia sin descargar nada.
+     */
+    @Transactional
+    public PantallaResponseDto cambiarEncendido(Long id, EncendidoDto request) {
+        Pantalla pantalla = obtener(id);
+        pantalla.setEncendida(request.encendida());
+        return toResponse(pantalla);
+    }
+
     @Transactional
     public void desactivar(Long id) {
         obtener(id).setActivo(false);
@@ -216,6 +232,7 @@ public class PantallaService {
                 estadoDe(p.getUltimaConexion()),
                 p.getUltimaConexion(),
                 p.getActivo(),
+                !Boolean.FALSE.equals(p.getEncendida()),
                 p.getSucursal().getId(),
                 p.getSucursal().getNombre(),
                 playlist == null ? null : playlist.getId(),
