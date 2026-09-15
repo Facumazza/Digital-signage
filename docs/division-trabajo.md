@@ -1,4 +1,4 @@
-# División de trabajo y estado del backend
+# División de trabajo y estado del proyecto
 
 Este documento reemplaza el reparto "uno hace entidades, otro hace services" de la
 sección 13 de la [guía](guia-proyecto.md).
@@ -13,8 +13,9 @@ casi no se pisan archivos.
 
 ## Estado actual
 
-El backend del panel está completo: las 7 entidades, sus repositories, DTOs,
-services y controllers, más el endpoint del player y autenticación.
+Las tres partes funcionan de punta a punta **dentro de una misma red**: desde
+el panel se cambia la playlist de una pantalla y el celular la descarga y la
+reproduce.
 
 | Etapa | Estado |
 | --- | --- |
@@ -23,12 +24,38 @@ services y controllers, más el endpoint del player y autenticación.
 | 2 — Contenido + upload y descarga | ✅ |
 | 3 — Playlist + versionado | ✅ |
 | 4 — API del player (config + heartbeat) | ✅ |
-| 5 a 9 — Android, React, prueba remota, robustez | ❌ no arrancados |
+| 5 — Android mínimo | ✅ |
+| 6 — Sincronización: varios contenidos, imágenes, caché y versión | ✅ |
+| 7 — Control web | ✅ clientes, usuarios, sucursales, pantallas, contenidos, playlists |
+| 8 — Prueba entre dos redes | ❌ el backend solo corre en la LAN |
+| 9 — Robustez | ⚠️ el modo offline está programado pero nunca se probó cortando la red |
 | 10 — Seguridad: JWT, roles y tokens de dispositivo | ✅ |
-| 11 — Producto | ❌ |
+| 11 — Producto | ⚠️ autoarranque del player hecho; falta kiosco, despliegue, backups y monitoreo |
 
-**Lo que falta para el MVP no es backend:** son el player Android y el panel
-React, que no tienen todavía una sola línea.
+**Lo que bloquea el MVP** (sección 15 de la guía) es la Etapa 8: sacar el
+backend a Internet, con HTTPS y cambiando la contraseña del admin antes.
+
+### Qué hay en cada parte
+
+- **Backend** (`backend/`): las 7 entidades con su CRUD, aislamiento por
+  cliente, bajas lógicas con reactivación, API del player con token por
+  dispositivo.
+- **Panel** (`frontend/`): React + TypeScript. Clientes y Usuarios los ve solo
+  un SUPER_ADMIN. Pantallas permite dar de alta, prender/apagar, asignar
+  playlist de a una o a todo el local, y ver una vista previa.
+- **Player** (`player-android/`): Kotlin, minSdk 21. Reproduce desde disco,
+  guarda la versión recién cuando terminó de bajar todo, se apaga desde el
+  panel, se reconfigura manteniendo apretada la pantalla 5 segundos y se abre
+  solo al encender el dispositivo.
+
+### Cómo arrancar en una base vacía
+
+1. Levantar el backend: crea solo `admin@grenlus.com` / `admin1234`.
+2. Entrar al panel con ese usuario y crear un **cliente** en Clientes.
+3. Crearle una **sucursal**, y en Pantallas dar de alta una **pantalla**. El
+   panel muestra el token una sola vez.
+4. Subir **contenidos**, armar una **playlist** y asignarla a la pantalla.
+5. Opcional: en Usuarios, crear un usuario para el cliente.
 
 ## Reparto por dominio
 
@@ -90,10 +117,15 @@ git checkout develop && git pull
 | Sin índices en las columnas FK | PostgreSQL no los crea solo. Se va a notar cuando haya volumen (Etapa 9) |
 | `ddl-auto=update` | No borra columnas ni renombra. Producción necesita migraciones versionadas (Etapa 9) |
 | Sin tests de services ni controllers | Los 5 que hay cubren solo el mapeo de entidades |
+| Cambiar una contraseña no cierra las sesiones abiertas | El JWT sigue valiendo hasta que vence (8 h). La baja de un usuario sí corta el acceso en el acto |
+| Un usuario no puede cambiarse su propia contraseña | Hoy la cambia un SUPER_ADMIN desde Usuarios |
+| El player no tiene ícono ni banner de Android TV | Lint lo marca como error (`MissingTvBanner`): en un Android TV la app puede no verse bien en el menú |
+| El autoarranque en Android 10+ necesita un permiso manual | "Mostrar sobre otras apps" se activa desde la configuración del player, una vez por dispositivo |
 
 ## Checklist antes de pushear
 
 - [ ] `mvnw test` en verde
+- [ ] Si se tocó el panel: `npm run build` compila (el modo desarrollo no chequea tipos)
 - [ ] El endpoint probado a mano, caso feliz y al menos un error
 - [ ] `git pull` de `develop` hecho y sin conflictos
 - [ ] Commit chico y con el porqué, no solo el qué
