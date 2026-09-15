@@ -295,7 +295,7 @@ export default function Pantallas() {
                       </select>
                     </td>
                     <td>
-                      <MiniReproductor playlistId={p.playlistId} />
+                      <MiniReproductor playlistId={p.playlistId} encendida={p.encendida} />
                     </td>
                     <td>
                       <button

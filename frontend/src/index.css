@@ -507,3 +507,21 @@ input[type="file"] {
   font-size: 13px;
   text-align: center;
 }
+/* En reposo invita a pasar el mouse; apagada se ve como la TV: negra. */
+.mini-reproductor-interactivo {
+  cursor: pointer;
+}
+
+.mini-reposo {
+  font-size: 26px;
+  color: #666;
+}
+
+.mini-reproductor-interactivo:hover .mini-reposo {
+  color: #ddd;
+}
+
+.mini-reproductor-apagada {
+  background: #000;
+  color: #555;
+}
