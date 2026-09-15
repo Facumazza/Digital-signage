@@ -27,7 +27,7 @@ public class UsuarioDetailsService implements UserDetailsService {
     @Override
     @Transactional(readOnly = true)
     public UserDetails loadUserByUsername(String email) {
-        Usuario usuario = usuarioRepository.findByEmail(email)
+        Usuario usuario = usuarioRepository.findByEmailIgnoreCase(email.trim())
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "No hay ningun usuario con el email " + email));
 

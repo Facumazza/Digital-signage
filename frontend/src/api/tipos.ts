@@ -31,6 +31,18 @@ export interface Cliente {
   fechaAlta: string;
 }
 
+/** Nunca trae la contraseña: el backend solo guarda su hash. */
+export interface Usuario {
+  id: number;
+  nombre: string;
+  email: string;
+  rol: Rol;
+  activo: boolean;
+  /** null para SUPER_ADMIN, que no pertenece a ningún cliente. */
+  clienteId: number | null;
+  clienteNombre: string | null;
+}
+
 export interface Sucursal {
   id: number;
   nombre: string;

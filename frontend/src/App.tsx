@@ -3,6 +3,7 @@ import { ProveedorSesion, useSesion } from "./auth/SesionContext";
 import Layout from "./componentes/Layout";
 import Login from "./paginas/Login";
 import Clientes from "./paginas/Clientes";
+import Usuarios from "./paginas/Usuarios";
 import Pantallas from "./paginas/Pantallas";
 import Sucursales from "./paginas/Sucursales";
 import Contenidos from "./paginas/Contenidos";
@@ -40,6 +41,14 @@ export default function App() {
               element={
                 <SoloSuperAdmin>
                   <Clientes />
+                </SoloSuperAdmin>
+              }
+            />
+            <Route
+              path="/usuarios"
+              element={
+                <SoloSuperAdmin>
+                  <Usuarios />
                 </SoloSuperAdmin>
               }
             />

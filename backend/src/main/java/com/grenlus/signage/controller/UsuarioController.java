@@ -20,9 +20,19 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
+    /**
+     * Sin filtros devuelve todos. Con clienteId, los de ese cliente; con
+     * superAdmins=true, el equipo de Grenlus. Siempre incluye los inactivos,
+     * para poder reactivarlos.
+     */
     @GetMapping
-    public List<UsuarioResponseDto> listarTodos() {
-        return usuarioService.listarTodos();
+    public List<UsuarioResponseDto> listar(
+            @RequestParam(required = false) Long clienteId,
+            @RequestParam(defaultValue = "false") boolean superAdmins) {
+        if (clienteId != null) {
+            return usuarioService.listarPorCliente(clienteId);
+        }
+        return superAdmins ? usuarioService.listarSuperAdmins() : usuarioService.listarTodos();
     }
 
     @GetMapping("/{id}")
@@ -45,6 +55,13 @@ public class UsuarioController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> desactivar(@PathVariable Long id) {
         usuarioService.desactivar(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Vuelve a activar un usuario dado de baja. */
+    @PostMapping("/{id}/reactivar")
+    public ResponseEntity<Void> reactivar(@PathVariable Long id) {
+        usuarioService.reactivar(id);
         return ResponseEntity.noContent().build();
     }
 }

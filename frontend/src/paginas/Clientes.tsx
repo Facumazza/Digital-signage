@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { api, ErrorHttp } from "../api/cliente";
 import type { Cliente } from "../api/tipos";
 
@@ -89,7 +90,7 @@ export default function Clientes() {
     if (
       cliente.activo &&
       !window.confirm(
-        `¿Dar de baja a ${cliente.nombre}? Deja de aparecer al elegir cliente en el panel. Se puede reactivar.`,
+        `¿Dar de baja a ${cliente.nombre}? Sus usuarios no van a poder entrar al panel. Sus pantallas siguen funcionando. Se puede reactivar.`,
       )
     ) {
       return;
@@ -200,6 +201,9 @@ export default function Clientes() {
                   {new Date(c.fechaAlta).toLocaleDateString("es-AR")}
                 </td>
                 <td className="acciones">
+                  <Link className="boton-secundario" to={`/usuarios?cliente=${c.id}`}>
+                    Usuarios
+                  </Link>
                   <button className="secundario" onClick={() => editar(c)}>
                     Editar
                   </button>

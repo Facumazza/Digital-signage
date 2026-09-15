@@ -46,6 +46,12 @@ public class ControlAcceso {
         }
     }
 
+    /** Id del usuario de la sesion, o null si no hay nadie autenticado. */
+    public Long usuarioIdActual() {
+        UsuarioAutenticado usuario = usuarioActual();
+        return usuario == null ? null : usuario.getUsuarioId();
+    }
+
     private UsuarioAutenticado usuarioActual() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         if (auth == null || !(auth.getPrincipal() instanceof UsuarioAutenticado usuario)) {

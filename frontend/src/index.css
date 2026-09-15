@@ -392,6 +392,48 @@ input[type="file"] {
   gap: 0.4rem;
 }
 
+.aviso {
+  color: var(--online);
+  background: var(--online-fondo);
+  border-radius: 7px;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.875rem;
+  margin: 0 0 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+}
+
+.aviso p {
+  margin: 0;
+}
+
+.ayuda {
+  margin: -0.75rem 0 1.25rem;
+}
+
+/* Un enlace que se ve como button.secundario. */
+.boton-secundario {
+  display: inline-flex;
+  align-items: center;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--sutil);
+  border: 1px solid var(--borde);
+  border-radius: 7px;
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+}
+
+.boton-secundario:hover {
+  color: var(--texto);
+}
+
+.etiqueta.separada {
+  margin-left: 0.5rem;
+}
+
 /* ---- interruptor de encendido ---- */
 .interruptor {
   position: relative;
