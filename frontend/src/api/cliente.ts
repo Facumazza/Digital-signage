@@ -25,12 +25,19 @@ export function borrarToken() {
 
 /** Error con el mensaje que mando el backend, no uno generico del navegador. */
 export class ErrorHttp extends Error {
-  constructor(
-    readonly estado: number,
-    mensaje: string,
-    readonly campos?: Record<string, string>,
-  ) {
+  // Campos declarados a mano y no como parámetros del constructor: el tsconfig
+  // tiene erasableSyntaxOnly y con esa sintaxis `npm run build` no compila.
+  // Además `mensaje` no era un campo, así que las páginas mostraban el error
+  // vacío en vez del texto del backend.
+  readonly estado: number;
+  readonly mensaje: string;
+  readonly campos?: Record<string, string>;
+
+  constructor(estado: number, mensaje: string, campos?: Record<string, string>) {
     super(mensaje);
+    this.estado = estado;
+    this.mensaje = mensaje;
+    this.campos = campos;
   }
 }
 
