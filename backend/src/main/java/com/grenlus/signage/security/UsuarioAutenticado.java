@@ -32,7 +32,11 @@ public class UsuarioAutenticado implements UserDetails {
         this.passwordHash = usuario.getPasswordHash();
         this.rol = usuario.getRol();
         this.clienteId = usuario.getCliente() == null ? null : usuario.getCliente().getId();
-        this.activo = Boolean.TRUE.equals(usuario.getActivo());
+        // Un cliente dado de baja deja afuera a todos sus usuarios: si dejo de
+        // contratar el servicio, no deberia seguir entrando al panel.
+        boolean clienteActivo = usuario.getCliente() == null
+                || Boolean.TRUE.equals(usuario.getCliente().getActivo());
+        this.activo = Boolean.TRUE.equals(usuario.getActivo()) && clienteActivo;
     }
 
     public Long getUsuarioId() {

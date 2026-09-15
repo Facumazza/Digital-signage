@@ -51,7 +51,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 UserDetails usuario = usuarioDetailsService
                         .loadUserByUsername(jwtService.emailDe(token));
 
-                if (jwtService.esValido(token, usuario)) {
+                // isEnabled se vuelve a mirar en cada request: sin eso, dar de
+                // baja a alguien no le cortaba el acceso hasta que venciera su
+                // token, hasta 8 horas despues.
+                if (usuario.isEnabled() && jwtService.esValido(token, usuario)) {
                     var auth = new UsernamePasswordAuthenticationToken(
                             usuario, null, usuario.getAuthorities());
                     auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
