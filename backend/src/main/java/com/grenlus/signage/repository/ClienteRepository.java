@@ -10,4 +10,7 @@ public interface ClienteRepository extends JpaRepository<Cliente, Long> {
     List<Cliente> findByActivoTrue();
 
     boolean existsByCuit(String cuit);
+
+    /** Para editar: el CUIT puede repetirse solo con el propio cliente. */
+    boolean existsByCuitAndIdNot(String cuit, Long id);
 }

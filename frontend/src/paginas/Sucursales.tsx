@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
+import { Link } from "react-router-dom";
 import { api, ErrorHttp } from "../api/cliente";
 import type { Sucursal } from "../api/tipos";
 import { useClientes } from "../hooks/useClientes";
@@ -99,7 +100,10 @@ export default function Sucursales() {
     return (
       <div className="tarjeta vacio">
         <p>No hay clientes cargados.</p>
-        <p className="sutil">Una sucursal siempre pertenece a un cliente.</p>
+        <p className="sutil">
+          Una sucursal siempre pertenece a un cliente. Crealo primero en{" "}
+          <Link to="/clientes">Clientes</Link>.
+        </p>
       </div>
     );
   }

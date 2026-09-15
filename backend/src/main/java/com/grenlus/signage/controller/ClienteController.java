@@ -26,9 +26,15 @@ public class ClienteController {
         return ResponseEntity.created(URI.create("/api/clientes/" + creado.id())).body(creado);
     }
 
+    /**
+     * Por defecto solo los activos, que es lo que quieren los selectores. El
+     * panel de clientes pide tambien los inactivos: sin verlos no hay forma de
+     * reactivarlos.
+     */
     @GetMapping
-    public List<ClienteResponseDto> listar() {
-        return clienteService.listarActivos();
+    public List<ClienteResponseDto> listar(
+            @RequestParam(defaultValue = "false") boolean incluirInactivos) {
+        return incluirInactivos ? clienteService.listarTodos() : clienteService.listarActivos();
     }
 
     @GetMapping("/{id}")

@@ -4,7 +4,9 @@ import com.grenlus.signage.dtos.ClienteRequestDto;
 import com.grenlus.signage.dtos.ClienteResponseDto;
 import com.grenlus.signage.entity.Cliente;
 import com.grenlus.signage.exception.RecursoNoEncontradoException;
+import com.grenlus.signage.exception.ReglaNegocioException;
 import com.grenlus.signage.repository.ClienteRepository;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,11 +23,15 @@ public class ClienteService {
 
     @Transactional
     public ClienteResponseDto crear(ClienteRequestDto request) {
+        String cuit = limpiar(request.cuit());
+        if (cuit != null && clienteRepository.existsByCuit(cuit)) {
+            throw new ReglaNegocioException("Ya existe un cliente con el CUIT " + cuit);
+        }
         Cliente cliente = Cliente.builder()
-                .nombre(request.nombre())
-                .cuit(request.cuit())
-                .email(request.email())
-                .telefono(request.telefono())
+                .nombre(request.nombre().trim())
+                .cuit(cuit)
+                .email(limpiar(request.email()))
+                .telefono(limpiar(request.telefono()))
                 .build();
         return toResponse(clienteRepository.save(cliente));
     }
@@ -38,6 +44,13 @@ public class ClienteService {
     }
 
     @Transactional(readOnly = true)
+    public List<ClienteResponseDto> listarTodos() {
+        return clienteRepository.findAll(Sort.by("nombre")).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public ClienteResponseDto buscarPorId(Long id) {
         return toResponse(obtener(id));
     }
@@ -45,11 +58,23 @@ public class ClienteService {
     @Transactional
     public ClienteResponseDto actualizar(Long id, ClienteRequestDto request) {
         Cliente cliente = obtener(id);
-        cliente.setNombre(request.nombre());
-        cliente.setCuit(request.cuit());
-        cliente.setEmail(request.email());
-        cliente.setTelefono(request.telefono());
+        String cuit = limpiar(request.cuit());
+        if (cuit != null && clienteRepository.existsByCuitAndIdNot(cuit, id)) {
+            throw new ReglaNegocioException("Ya existe otro cliente con el CUIT " + cuit);
+        }
+        cliente.setNombre(request.nombre().trim());
+        cliente.setCuit(cuit);
+        cliente.setEmail(limpiar(request.email()));
+        cliente.setTelefono(limpiar(request.telefono()));
         return toResponse(cliente);
+    }
+
+    /**
+     * Un campo opcional vacio se guarda como null. Si no, dos clientes sin CUIT
+     * quedarian con "" y chocarian en la validacion de CUIT repetido.
+     */
+    private static String limpiar(String valor) {
+        return valor == null || valor.isBlank() ? null : valor.trim();
     }
 
     /**

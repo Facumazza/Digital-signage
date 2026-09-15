@@ -9,6 +9,9 @@ export default function Layout() {
     <div className="contenedor">
       <header className="barra">
         <nav className="nav">
+          {/* El backend igual rechaza a los demás con 403: esto solo evita
+              mostrar un enlace que no les sirve. */}
+          {sesion?.rol === "SUPER_ADMIN" && <NavLink to="/clientes">Clientes</NavLink>}
           <NavLink to="/sucursales">Sucursales</NavLink>
           <NavLink to="/pantallas">Pantallas</NavLink>
           <NavLink to="/contenidos">Contenidos</NavLink>

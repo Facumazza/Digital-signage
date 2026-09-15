@@ -20,6 +20,17 @@ export interface LoginResponse {
   expiraEnMs: number;
 }
 
+/** Empresa que contrata el servicio. Solo la administra un SUPER_ADMIN. */
+export interface Cliente {
+  id: number;
+  nombre: string;
+  cuit: string | null;
+  email: string | null;
+  telefono: string | null;
+  activo: boolean;
+  fechaAlta: string;
+}
+
 export interface Sucursal {
   id: number;
   nombre: string;
