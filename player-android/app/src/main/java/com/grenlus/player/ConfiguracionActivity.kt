@@ -1,6 +1,8 @@
 package com.grenlus.player
 
+import android.content.ActivityNotFoundException
 import android.content.Intent
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.Toast
@@ -38,6 +40,22 @@ class ConfiguracionActivity : AppCompatActivity() {
             vista.cancelar.visibility = View.VISIBLE
         }
 
+        vista.arrancar.isChecked = identidad.arrancarAlEncender
+        vista.arrancar.setOnCheckedChangeListener { _, activo ->
+            identidad.arrancarAlEncender = activo
+            mostrarEstadoArranque()
+        }
+        vista.darPermiso.setOnClickListener {
+            // El boton solo se muestra desde Android 10, pero lint no lo sabe.
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return@setOnClickListener
+            try {
+                startActivity(ArranqueAlEncender.intentPermiso(this))
+            } catch (e: ActivityNotFoundException) {
+                // Varios Android TV y TV Box no traen esa pantalla de ajustes.
+                Toast.makeText(this, R.string.permiso_sin_pantalla, Toast.LENGTH_LONG).show()
+            }
+        }
+
         vista.cancelar.setOnClickListener { volverAlPlayer() }
 
         vista.guardar.setOnClickListener {
@@ -65,6 +83,26 @@ class ConfiguracionActivity : AppCompatActivity() {
 
             volverAlPlayer()
         }
+    }
+
+    /** En onResume y no en onCreate: el permiso se concede en otra pantalla y se vuelve aca. */
+    override fun onResume() {
+        super.onResume()
+        mostrarEstadoArranque()
+    }
+
+    private fun mostrarEstadoArranque() {
+        val activo = vista.arrancar.isChecked
+        val conPermiso = ArranqueAlEncender.puedeAbrirseSola(this)
+
+        vista.estadoArranque.setText(
+            when {
+                !activo -> R.string.arranque_apagado
+                conPermiso -> R.string.arranque_listo
+                else -> R.string.arranque_falta_permiso
+            }
+        )
+        vista.darPermiso.visibility = if (activo && !conPermiso) View.VISIBLE else View.GONE
     }
 
     private fun volverAlPlayer() {

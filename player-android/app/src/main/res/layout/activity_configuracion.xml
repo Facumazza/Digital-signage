@@ -50,6 +50,33 @@
             android:inputType="text"
             android:autofillHints="" />
 
+        <!-- Arranque automatico: se aplica al tocarlo, sin esperar a Guardar. -->
+        <androidx.appcompat.widget.SwitchCompat
+            android:id="@+id/arrancar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/arrancar_al_encender"
+            android:textColor="#E6EAEF"
+            android:textSize="15sp" />
+
+        <TextView
+            android:id="@+id/estadoArranque"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="#939EAD"
+            android:textSize="13sp" />
+
+        <Button
+            android:id="@+id/darPermiso"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/dar_permiso"
+            android:visibility="gone"
+            style="?android:attr/borderlessButtonStyle" />
+
         <Button
             android:id="@+id/guardar"
             android:layout_width="match_parent"

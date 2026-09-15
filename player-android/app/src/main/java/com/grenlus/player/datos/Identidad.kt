@@ -45,6 +45,15 @@ class Identidad(contexto: Context) {
         get() = prefs.getBoolean(ENCENDIDA, true)
         set(valor) = prefs.edit().putBoolean(ENCENDIDA, valor).apply()
 
+    /**
+     * Si abre el player sola al prender el dispositivo. Encendido por defecto,
+     * que es lo que necesita una TV de un local; se puede apagar para probar la
+     * app en un celular personal sin que se abra en cada reinicio.
+     */
+    var arrancarAlEncender: Boolean
+        get() = prefs.getBoolean(ARRANQUE, true)
+        set(valor) = prefs.edit().putBoolean(ARRANQUE, valor).apply()
+
     val configurada: Boolean
         get() = servidor.isNotBlank() && codigo.isNotBlank() && token.isNotBlank()
 
@@ -58,5 +67,6 @@ class Identidad(contexto: Context) {
         const val TOKEN = "token"
         const val VERSION = "versionLocal"
         const val ENCENDIDA = "encendida"
+        const val ARRANQUE = "arrancarAlEncender"
     }
 }

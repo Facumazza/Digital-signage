@@ -7,6 +7,14 @@
     <!-- Sin esto la pantalla se apaga sola y la carteleria deja de verse. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
+    <!-- Para abrir el player solo al prender el dispositivo. -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Desde Android 10 es lo unico que permite abrir la pantalla desde el
+         arranque. No se concede al instalar: se activa a mano desde la
+         configuracion del player. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
     <!-- Un TV Box no tiene pantalla tactil: sin declararlo como no requerido,
          Play Store y algunos dispositivos consideran la app incompatible. -->
     <uses-feature
@@ -45,6 +53,21 @@
             android:name=".ConfiguracionActivity"
             android:exported="false"
             android:theme="@style/Tema.Player" />
+
+        <!-- exported porque lo invoca el sistema. BOOT_COMPLETED es un
+             broadcast protegido: ninguna otra app puede mandarlo. -->
+        <receiver
+            android:name=".ArranqueAlEncender"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>
