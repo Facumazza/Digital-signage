@@ -47,6 +47,10 @@ public class PlayerController {
      *
      * No puede usar /api/contenidos/{id}/archivo: ese exige el JWT del panel y
      * el Android no tiene uno.
+     *
+     * Acepta el header Range: al devolver un Resource con 200, Spring responde
+     * 206 con solo el tramo pedido. Es lo que permite al player retomar una
+     * descarga cortada en vez de empezar de cero.
      */
     @GetMapping("/{codigo}/contenidos/{contenidoId}/archivo")
     public ResponseEntity<Resource> descargar(

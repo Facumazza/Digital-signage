@@ -65,7 +65,8 @@ public class PlayerService {
                                 // Android no puede pedirla por HTTP.
                                 "/api/player/" + pantalla.getCodigo() + "/contenidos/"
                                         + item.getContenido().getId() + "/archivo",
-                                item.getDuracionVisualizacion()))
+                                item.getDuracionVisualizacion(),
+                                item.getContenido().getTamanoBytes()))
                         .toList();
 
         // Apagada se mandan igual los contenidos: el player los conserva y al

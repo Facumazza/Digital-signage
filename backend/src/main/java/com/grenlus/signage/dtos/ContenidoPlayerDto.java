@@ -15,4 +15,11 @@ public class ContenidoPlayerDto {
     private String tipo;
     private String url;
     private Integer duracion;
+
+    /**
+     * Tamanio exacto del archivo. El player lo usa para no dar por bueno un
+     * archivo cortado, para retomar una descarga interrumpida y para saber si
+     * le alcanza el espacio antes de empezar.
+     */
+    private Long tamanoBytes;
 }
