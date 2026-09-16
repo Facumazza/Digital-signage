@@ -42,6 +42,12 @@ android {
         jvmTarget = "17"
     }
 
+    testOptions {
+        // Los tests corren en la PC, donde las clases de Android (Log) no
+        // existen: devuelven valores por defecto en vez de fallar.
+        unitTests.isReturnDefaultValues = true
+    }
+
     buildFeatures {
         viewBinding = true
     }
@@ -55,4 +61,7 @@ dependencies {
     implementation(libs.media3.ui)
     implementation(libs.okhttp)
     implementation(libs.coroutines.android)
+
+    testImplementation(libs.junit)
+    testImplementation(libs.okhttp.mockwebserver)
 }

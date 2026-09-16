@@ -90,15 +90,16 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
 
         Log.i(TAG, "Version ${identidad.versionLocal} -> ${config.playlistVersion}")
 
+        val faltantes = config.contenidos.filterNot { estaCompleto(it) }
+        asegurarEspacio(config.contenidos, faltantes)
+
+        faltantes.forEach { remoto ->
+            Log.i(TAG, "Descargando ${remoto.id}")
+            api.descargar(remoto, File(carpeta, nombreDe(remoto)))
+        }
+
         val locales = config.contenidos.map { remoto ->
-            val archivo = File(carpeta, nombreDe(remoto))
-
-            if (!archivo.exists()) {
-                Log.i(TAG, "Descargando ${remoto.id}")
-                api.descargar(remoto, archivo)
-            }
-
-            ContenidoLocal(remoto.id, remoto.tipo, archivo, remoto.duracionSegundos)
+            ContenidoLocal(remoto.id, remoto.tipo, File(carpeta, nombreDe(remoto)), remoto.duracionSegundos)
         }
 
         // Recien aca, con todo bajado, se da por buena la version nueva. Si
@@ -116,6 +117,55 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
     val encendida: Boolean get() = identidad.encendida
 
     fun enviarHeartbeat() = api.enviarHeartbeat()
+
+    /**
+     * Ya esta en el disco y entero. Un archivo con otro tamanio que el del
+     * servidor se vuelve a bajar: puede haber quedado cortado antes de que
+     * existiera esta verificacion.
+     */
+    private fun estaCompleto(remoto: ContenidoRemoto): Boolean {
+        val archivo = File(carpeta, nombreDe(remoto))
+        if (!archivo.exists()) return false
+        if (remoto.tamanoBytes == null || archivo.length() == remoto.tamanoBytes) return true
+
+        Log.w(TAG, "${archivo.name} mide ${archivo.length()} y deberia medir ${remoto.tamanoBytes}: se baja de nuevo")
+        archivo.delete()
+        return false
+    }
+
+    /**
+     * Verifica que entre lo que falta bajar antes de empezar.
+     *
+     * Primero libera lo que no sirve ni para la playlist que se esta mostrando
+     * ni para la nueva: la que se muestra no se toca, porque si la descarga
+     * falla se sigue reproduciendo. Si igual no alcanza, corta con un error
+     * claro en vez de llenar el disco a medias en cada intento.
+     */
+    private fun asegurarEspacio(nuevos: List<ContenidoRemoto>, faltantes: List<ContenidoRemoto>) {
+        if (faltantes.isEmpty()) return
+
+        val enUso = contenidosEnDisco().map { it.archivo.name }.toSet()
+        val necesarios = nuevos.map { nombreDe(it) }.toSet()
+        val conservar = enUso + necesarios + necesarios.map { "$it.parcial" } + "playlist.txt"
+        carpeta.listFiles()?.forEach { archivo ->
+            if (archivo.name !in conservar) {
+                Log.i(TAG, "Liberando espacio: ${archivo.name}")
+                archivo.delete()
+            }
+        }
+
+        // Sin tamanio (backend viejo) no hay como calcularlo: se intenta igual.
+        if (faltantes.any { it.tamanoBytes == null }) return
+
+        val requerido = faltantes.sumOf { remoto ->
+            val parcial = File(carpeta, "${nombreDe(remoto)}.parcial")
+            remoto.tamanoBytes!! - parcial.length().coerceAtMost(remoto.tamanoBytes)
+        }
+        val disponible = carpeta.usableSpace
+        if (requerido + MARGEN_BYTES > disponible) {
+            throw EspacioInsuficiente(requerido, disponible)
+        }
+    }
 
     /** El id manda: dos contenidos distintos nunca comparten nombre de archivo. */
     private fun nombreDe(remoto: ContenidoRemoto): String {
@@ -150,5 +200,19 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
 
         /** Ninguna playlist bajada: cualquier version futura cuenta como nueva. */
         const val SIN_PLAYLIST = -1L
+
+        /**
+         * Lo que se deja libre siempre. Un Android con el disco lleno empieza a
+         * fallar en todo, no solo en esta app.
+         */
+        const val MARGEN_BYTES = 200L * 1024 * 1024
+    }
+}
+
+class EspacioInsuficiente(requerido: Long, disponible: Long) : java.io.IOException(
+    "Espacio insuficiente: la playlist necesita ${requerido / MB} MB mas y hay ${disponible / MB} MB libres"
+) {
+    private companion object {
+        const val MB = 1024 * 1024
     }
 }

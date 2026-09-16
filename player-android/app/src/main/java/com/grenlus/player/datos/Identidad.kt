@@ -9,20 +9,20 @@ import android.content.Context
  * y a que se corte la luz: si el dispositivo olvidara su codigo habria que ir
  * hasta el local a reconfigurarlo.
  */
-class Identidad(contexto: Context) {
+class Identidad(contexto: Context) : Credenciales {
 
     private val prefs =
         contexto.getSharedPreferences("grenlus.identidad", Context.MODE_PRIVATE)
 
-    var servidor: String
+    override var servidor: String
         get() = prefs.getString(SERVIDOR, "") ?: ""
         set(valor) = prefs.edit().putString(SERVIDOR, valor.trimEnd('/')).apply()
 
-    var codigo: String
+    override var codigo: String
         get() = prefs.getString(CODIGO, "") ?: ""
         set(valor) = prefs.edit().putString(CODIGO, valor.trim()).apply()
 
-    var token: String
+    override var token: String
         get() = prefs.getString(TOKEN, "") ?: ""
         set(valor) = prefs.edit().putString(TOKEN, valor.trim()).apply()
 
