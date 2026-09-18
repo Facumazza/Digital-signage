@@ -62,33 +62,25 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
         // esto quedara despues del chequeo de version nunca se aplicaria.
         identidad.encendida = config.encendida
 
-        if (config.vacia) {
-            // El servidor dice explicitamente que esta pantalla no tiene nada
-            // que mostrar: se corta la reproduccion.
-            //
-            // Esto es distinto de no poder consultar. Sin red se sigue
-            // reproduciendo (la excepcion la maneja quien llama); aca hubo
-            // respuesta y la respuesta fue "nada". Tratar los dos casos igual
-            // dejaba a la oficina sin forma de apagar una pantalla: sacarle la
-            // playlist no la detenia, y habia que ir hasta el local.
-            if (identidad.versionLocal != SIN_PLAYLIST) {
-                Log.i(TAG, "La pantalla se quedo sin playlist: se detiene")
-                File(carpeta, "playlist.txt").delete()
-                // Se vuelve a -1 para que, si mas adelante le reasignan una
-                // playlist, se considere nueva aunque sea la misma version.
-                identidad.versionLocal = SIN_PLAYLIST
+        when (decidir(config, identidad.playlistLocal, identidad.versionLocal)) {
+            Decision.DETENER -> {
+                if (identidad.versionLocal != SIN_PLAYLIST) {
+                    Log.i(TAG, "La pantalla se quedo sin playlist: se detiene")
+                    File(carpeta, "playlist.txt").delete()
+                    // Se olvida para que, si mas adelante le reasignan la
+                    // misma playlist, se considere nueva.
+                    identidad.versionLocal = SIN_PLAYLIST
+                    identidad.playlistLocal = SIN_PLAYLIST
+                }
+                return emptyList()
             }
-            return emptyList()
+            Decision.SEGUIR -> return null
+            Decision.ACTUALIZAR -> Log.i(
+                TAG,
+                "Playlist ${identidad.playlistLocal} v${identidad.versionLocal} -> " +
+                    "${config.playlistId} v${config.playlistVersion}"
+            )
         }
-
-        if (config.playlistVersion == identidad.versionLocal) {
-            // Mismo contenido que la ultima vez: no se toca nada. Este es el
-            // caso normal, y es el que evita volver a bajar archivos que ya
-            // estan en el disco.
-            return null
-        }
-
-        Log.i(TAG, "Version ${identidad.versionLocal} -> ${config.playlistVersion}")
 
         val faltantes = config.contenidos.filterNot { estaCompleto(it) }
         asegurarEspacio(config.contenidos, faltantes)
@@ -108,6 +100,7 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
         // de mostrar una a medias.
         guardarIndice(locales)
         identidad.versionLocal = config.playlistVersion!!
+        identidad.playlistLocal = config.playlistId!!
         limpiarSobrantes(locales)
 
         return locales
@@ -195,17 +188,44 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
         }
     }
 
-    private companion object {
-        const val TAG = "Sincronizador"
+    enum class Decision { DETENER, SEGUIR, ACTUALIZAR }
+
+    companion object {
+        private const val TAG = "Sincronizador"
+
+        /**
+         * Que hacer con la respuesta del servidor. Separado del resto para
+         * poder probarlo sin Android.
+         *
+         * - Sin playlist asignada: DETENER. Es como la oficina saca de
+         *   servicio una TV, y hubo respuesta: no es lo mismo que no poder
+         *   consultar, caso en que se sigue reproduciendo.
+         * - Playlist asignada pero vacia: SEGUIR con lo que se estaba
+         *   mostrando. Casi siempre es una playlist a medio armar (recien
+         *   creada, o mientras se reemplaza un contenido): antes la TV del
+         *   local quedaba en negro con "Sin contenido asignado" hasta la
+         *   consulta siguiente. Para apagar una TV estan "sin contenido" y el
+         *   interruptor del panel.
+         * - Otra playlist, u otra version de la misma: ACTUALIZAR. Se compara
+         *   el par, porque cada playlist numera sus versiones.
+         */
+        fun decidir(config: Configuracion, playlistLocal: Long, versionLocal: Long): Decision =
+            when {
+                config.sinPlaylist -> Decision.DETENER
+                config.contenidos.isEmpty() -> Decision.SEGUIR
+                config.playlistId == playlistLocal && config.playlistVersion == versionLocal ->
+                    Decision.SEGUIR
+                else -> Decision.ACTUALIZAR
+            }
 
         /** Ninguna playlist bajada: cualquier version futura cuenta como nueva. */
-        const val SIN_PLAYLIST = -1L
+        private const val SIN_PLAYLIST = -1L
 
         /**
          * Lo que se deja libre siempre. Un Android con el disco lleno empieza a
          * fallar en todo, no solo en esta app.
          */
-        const val MARGEN_BYTES = 200L * 1024 * 1024
+        private const val MARGEN_BYTES = 200L * 1024 * 1024
     }
 }
 

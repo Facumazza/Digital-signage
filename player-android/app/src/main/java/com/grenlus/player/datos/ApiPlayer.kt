@@ -27,7 +27,8 @@ data class Configuracion(
     val encendida: Boolean,
     val contenidos: List<ContenidoRemoto>,
 ) {
-    val vacia: Boolean get() = playlistVersion == null || contenidos.isEmpty()
+    /** La oficina no le asigno ninguna playlist: la pantalla no debe mostrar nada. */
+    val sinPlaylist: Boolean get() = playlistId == null || playlistVersion == null
 }
 
 class ErrorApi(mensaje: String) : IOException(mensaje)

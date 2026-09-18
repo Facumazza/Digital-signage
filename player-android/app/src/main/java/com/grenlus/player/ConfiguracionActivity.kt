@@ -75,6 +75,7 @@ class ConfiguracionActivity : AppCompatActivity() {
             // conservar lo descargado para no quedar en negro mientras resincroniza.
             if (codigo != identidad.codigo) {
                 identidad.versionLocal = -1
+                identidad.playlistLocal = -1
             }
 
             identidad.servidor = servidor

@@ -37,6 +37,15 @@ class Identidad(contexto: Context) : Credenciales {
         set(valor) = prefs.edit().putLong(VERSION, valor).apply()
 
     /**
+     * De que playlist es versionLocal. La version sola no alcanza: cada
+     * playlist numera las suyas, y pasar de una en version 3 a otra en
+     * version 3 parecia "sin cambios".
+     */
+    var playlistLocal: Long
+        get() = prefs.getLong(PLAYLIST, -1)
+        set(valor) = prefs.edit().putLong(PLAYLIST, valor).apply()
+
+    /**
      * Ultimo estado de encendido recibido. Se persiste para que una pantalla
      * apagada que se reinicia (corte de luz a la noche) no muestre contenido
      * hasta la primera consulta, que sin red podria no llegar nunca.
@@ -66,6 +75,7 @@ class Identidad(contexto: Context) : Credenciales {
         const val CODIGO = "codigo"
         const val TOKEN = "token"
         const val VERSION = "versionLocal"
+        const val PLAYLIST = "playlistLocal"
         const val ENCENDIDA = "encendida"
         const val ARRANQUE = "arrancarAlEncender"
     }
