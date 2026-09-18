@@ -48,20 +48,28 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
     }
 
     /**
-     * Consulta al servidor y, si cambio la version, descarga lo que falte.
+     * Pide al servidor el estado deseado y guarda el encendido.
+     *
+     * Va separado de [sincronizar] para que quien llama aplique el encendido
+     * antes de descargar: si no, prender una TV a la que mientras tanto le
+     * cambiaron la playlist la dejaba en negro hasta terminar de bajar todo,
+     * y para siempre si la descarga fallaba.
+     */
+    fun consultar(): Configuracion {
+        val config = api.obtenerConfiguracion()
+        identidad.encendida = config.encendida
+        return config
+    }
+
+    /**
+     * Si cambio la playlist o su version, descarga lo que falte.
      *
      * Devuelve la lista nueva cuando cambio algo, una lista vacia cuando el
      * servidor dice que no hay nada que mostrar, y null cuando ya estaba al
      * dia. Null significa "segui reproduciendo lo que tenias"; la lista vacia
      * significa "deja de mostrar".
      */
-    fun sincronizar(): List<ContenidoLocal>? {
-        val config = api.obtenerConfiguracion()
-
-        // Primero que nada: prender o apagar no cambia la version, asi que si
-        // esto quedara despues del chequeo de version nunca se aplicaria.
-        identidad.encendida = config.encendida
-
+    fun sincronizar(config: Configuracion): List<ContenidoLocal>? {
         when (decidir(config, identidad.playlistLocal, identidad.versionLocal)) {
             Decision.DETENER -> {
                 if (identidad.versionLocal != SIN_PLAYLIST) {
@@ -105,9 +113,6 @@ class Sincronizador(contexto: Context, private val identidad: Identidad) {
 
         return locales
     }
-
-    /** Estado de encendido segun la ultima respuesta del servidor. */
-    val encendida: Boolean get() = identidad.encendida
 
     fun enviarHeartbeat() = api.enviarHeartbeat()
 

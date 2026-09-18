@@ -98,7 +98,14 @@ class PlayerActivity : AppCompatActivity() {
     private fun lanzarSincronizacion() = lifecycleScope.launch {
         while (isActive) {
             try {
-                val nueva = withContext(Dispatchers.IO) { sincronizador.sincronizar() }
+                val config = withContext(Dispatchers.IO) { sincronizador.consultar() }
+
+                // Antes de descargar: prender o apagar tiene que verse en el
+                // acto. Al prender se muestra lo que ya esta en disco, y si
+                // hay playlist nueva se pasa a ella cuando termine de bajar.
+                aplicarEncendido(config.encendida)
+
+                val nueva = withContext(Dispatchers.IO) { sincronizador.sincronizar(config) }
 
                 // null significa "no cambio nada": se sigue reproduciendo sin
                 // interrumpir. Cortar la reproduccion en cada consulta seria
@@ -120,8 +127,6 @@ class PlayerActivity : AppCompatActivity() {
                         reproducirDesde(0)
                     }
                 }
-
-                aplicarEncendido(sincronizador.encendida)
             } catch (e: Exception) {
                 Log.w(TAG, "Sincronizacion fallida: ${e.message}")
                 if (lista.isEmpty()) mostrarEstado("Sin conexion con el servidor")
