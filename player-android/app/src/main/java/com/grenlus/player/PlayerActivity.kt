@@ -8,11 +8,13 @@ import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import com.grenlus.player.databinding.ActivityPlayerBinding
 import com.grenlus.player.datos.ContenidoLocal
 import com.grenlus.player.datos.Identidad
+import com.grenlus.player.datos.Imagenes
 import com.grenlus.player.datos.Sincronizador
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -37,6 +39,16 @@ class PlayerActivity : AppCompatActivity() {
     private var exo: ExoPlayer? = null
     private var lista: List<ContenidoLocal> = emptyList()
     private var indice = 0
+
+    /**
+     * Cambia cada vez que se pasa a otro contenido, se apaga o se detiene.
+     * Una imagen que termina de cargar o un temporizador que vence con otro
+     * turno quedaron viejos y no deben tocar la pantalla.
+     */
+    private var turno = 0
+
+    /** Contenidos seguidos que no se pudieron mostrar. Vuelve a 0 con uno que anda. */
+    private var fallidosSeguidos = 0
 
     /** La oficina la apago: se muestra negro aunque haya contenido listo. */
     private var apagada = false
@@ -123,6 +135,7 @@ class PlayerActivity : AppCompatActivity() {
                     else -> {
                         Log.i(TAG, "Playlist nueva con ${nueva.size} contenidos")
                         lista = nueva
+                        fallidosSeguidos = 0
                         mostrarEstado(null)
                         reproducirDesde(0)
                     }
@@ -140,6 +153,7 @@ class PlayerActivity : AppCompatActivity() {
         // imagen que estaba en pantalla al momento de apagar.
         if (lista.isEmpty() || apagada) return
         indice = posicion % lista.size
+        turno++
         val actual = lista[indice]
 
         if (actual.esVideo) mostrarVideo(actual) else mostrarImagen(actual)
@@ -154,9 +168,22 @@ class PlayerActivity : AppCompatActivity() {
             vista.video.player = it
             it.addListener(object : Player.Listener {
                 override fun onPlaybackStateChanged(estado: Int) {
-                    // Al terminar el video se pasa al siguiente: asi la lista
-                    // gira sola sin que nadie la toque.
-                    if (estado == Player.STATE_ENDED) siguiente()
+                    when (estado) {
+                        Player.STATE_READY -> fallidosSeguidos = 0
+                        // Al terminar el video se pasa al siguiente: asi la
+                        // lista gira sola sin que nadie la toque.
+                        Player.STATE_ENDED -> siguiente()
+                        Player.STATE_BUFFERING, Player.STATE_IDLE -> Unit
+                    }
+                }
+
+                override fun onPlayerError(error: PlaybackException) {
+                    // Sin esto un video que no se puede reproducir no terminaba
+                    // nunca y la TV quedaba trabada en el. Pasa en TV Box
+                    // baratos con videos 4K o H.265 que el celular si reproduce.
+                    Log.w(TAG, "No se pudo reproducir " +
+                        "${lista.getOrNull(indice)?.archivo?.name}: ${error.errorCodeName}")
+                    contenidoFallido()
                 }
             })
         }
@@ -168,23 +195,69 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun mostrarImagen(contenido: ContenidoLocal) {
         exo?.pause()
-        vista.video.visibility = View.GONE
-        vista.imagen.visibility = View.VISIBLE
-        vista.imagen.setImageURI(android.net.Uri.fromFile(contenido.archivo))
+        val miTurno = turno
+        val pantalla = resources.displayMetrics
+        val ancho = maxOf(pantalla.widthPixels, pantalla.heightPixels)
+        val alto = minOf(pantalla.widthPixels, pantalla.heightPixels)
 
-        // Una imagen no termina sola: hay que contarle el tiempo. Si no vino
-        // duracion se usan 10 segundos, para no dejarla fija para siempre.
-        val segundos = contenido.duracionSegundos ?: 10
         lifecycleScope.launch {
-            val eraIndice = indice
-            delay(segundos * 1000L)
-            // Si mientras tanto entro una playlist nueva, este temporizador
-            // quedo viejo y no debe hacer avanzar nada.
-            if (isActive && indice == eraIndice) siguiente()
+            // Decodificar una foto grande tarda: fuera del hilo de la pantalla.
+            val imagen = withContext(Dispatchers.IO) {
+                Imagenes.cargarReducida(contenido.archivo, ancho, alto)
+            }
+            // Mientras cargaba pudo entrar otra playlist o apagarse la TV.
+            if (miTurno != turno || apagada) return@launch
+
+            if (imagen == null) {
+                Log.w(TAG, "No se pudo mostrar la imagen ${contenido.archivo.name}")
+                contenidoFallido()
+                return@launch
+            }
+
+            vista.video.visibility = View.GONE
+            vista.imagen.visibility = View.VISIBLE
+            vista.imagen.setImageBitmap(imagen)
+            fallidosSeguidos = 0
+
+            // Una imagen no termina sola: hay que contarle el tiempo. Si no
+            // vino duracion se usan 10 segundos, para no dejarla fija.
+            delay((contenido.duracionSegundos ?: 10) * 1000L)
+            if (miTurno == turno) siguiente()
         }
     }
 
     private fun siguiente() = reproducirDesde(indice + 1)
+
+    /**
+     * Saltea el contenido que no se pudo mostrar. Si fallan todos seguidos,
+     * espera antes de reintentar: si no, una playlist de un solo video roto
+     * giraria en falso a toda velocidad.
+     */
+    private fun contenidoFallido() {
+        if (lista.isEmpty() || apagada) return
+        fallidosSeguidos++
+        if (fallidosSeguidos < lista.size) {
+            siguiente()
+            return
+        }
+
+        Log.w(TAG, "No se pudo mostrar ningun contenido: se reintenta en 30 s")
+        fallidosSeguidos = 0
+        turno++
+        exo?.stop()
+        vista.video.visibility = View.GONE
+        vista.imagen.visibility = View.GONE
+        mostrarEstado(getString(R.string.no_se_pudo_reproducir))
+
+        val miTurno = turno
+        lifecycleScope.launch {
+            delay(30_000)
+            if (miTurno == turno) {
+                mostrarEstado(null)
+                siguiente()
+            }
+        }
+    }
 
     /*
      * Abrir la configuracion manteniendo apretado.
@@ -243,6 +316,7 @@ class PlayerActivity : AppCompatActivity() {
     private fun detener() {
         lista = emptyList()
         indice = 0
+        turno++
         exo?.stop()
         vista.video.visibility = View.GONE
         vista.imagen.visibility = View.GONE
@@ -260,6 +334,7 @@ class PlayerActivity : AppCompatActivity() {
         if (!encendida && !apagada) {
             Log.i(TAG, "Apagada desde el panel")
             apagada = true
+            turno++
             exo?.pause()
             vista.video.visibility = View.GONE
             vista.imagen.visibility = View.GONE

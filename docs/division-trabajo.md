@@ -119,7 +119,6 @@ git checkout develop && git pull
 | Sin tests de services ni controllers | Los 5 que hay cubren solo el mapeo de entidades |
 | Cambiar una contraseña no cierra las sesiones abiertas | El JWT sigue valiendo hasta que vence (8 h). La baja de un usuario sí corta el acceso en el acto |
 | Un usuario no puede cambiarse su propia contraseña | Hoy la cambia un SUPER_ADMIN desde Usuarios |
-| El player no tiene ícono ni banner de Android TV | Lint lo marca como error (`MissingTvBanner`): en un Android TV la app puede no verse bien en el menú |
 | El autoarranque en Android 10+ necesita un permiso manual | "Mostrar sobre otras apps" se activa desde la configuración del player, una vez por dispositivo |
 
 ## Checklist antes de pushear

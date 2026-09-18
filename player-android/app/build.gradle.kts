@@ -23,8 +23,8 @@ android {
         // tener Android viejo, y Media3 lo soporta desde aca.
         minSdk = 21
         targetSdk = 35
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 3
+        versionName = "0.3"
     }
 
     buildTypes {

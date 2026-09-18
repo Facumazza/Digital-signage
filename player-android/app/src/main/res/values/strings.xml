@@ -16,5 +16,6 @@
     <string name="arranque_falta_permiso">Falta un permiso: este Android no deja que la app se abra sola hasta que se active \"Mostrar sobre otras apps\".</string>
     <string name="dar_permiso">Activar \"Mostrar sobre otras apps\"</string>
     <string name="permiso_sin_pantalla">Este dispositivo no tiene esa pantalla de ajustes. Se puede conceder por adb: adb shell appops set com.grenlus.player SYSTEM_ALERT_WINDOW allow</string>
+    <string name="no_se_pudo_reproducir">No se pudo reproducir el contenido</string>
     <string name="faltan_datos">Faltan datos: servidor, código y token son obligatorios.</string>
 </resources>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Banner de Android TV: 320x180 dp, lo que muestra la fila de apps del
+     launcher. Sin el, lint da error (MissingTvBanner) y en algunos Android TV
+     la app no aparece o aparece sin imagen. Provisorio hasta tener el logo. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+
+    <path
+        android:fillColor="#14181D"
+        android:pathData="M0,0h320v180h-320z" />
+
+    <path
+        android:fillColor="#1F6FEB"
+        android:pathData="M100,40h120a8,8 0,0 1,8 8v70a8,8 0,0 1,-8 8h-120a8,8 0,0 1,-8 -8v-70a8,8 0,0 1,8 -8z" />
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M148,62v42l34,-21z" />
+
+    <path
+        android:fillColor="#1F6FEB"
+        android:pathData="M135,138h50v6h-50z" />
+</vector>
