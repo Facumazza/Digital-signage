@@ -33,14 +33,17 @@ public class ContenidoService {
     private final ClienteRepository clienteRepository;
     private final ControlAcceso controlAcceso;
     private final Path directorioStorage;
+    private final long duracionMaximaVideo;
 
     public ContenidoService(ContenidoRepository contenidoRepository,
                             ClienteRepository clienteRepository,
                             ControlAcceso controlAcceso,
-                            @Value("${signage.storage.ruta}") String rutaStorage) {
+                            @Value("${signage.storage.ruta}") String rutaStorage,
+                            @Value("${signage.contenido.duracion-maxima-video}") long duracionMaximaVideo) {
         this.contenidoRepository = contenidoRepository;
         this.clienteRepository = clienteRepository;
         this.controlAcceso = controlAcceso;
+        this.duracionMaximaVideo = duracionMaximaVideo;
         this.directorioStorage = Path.of(rutaStorage).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.directorioStorage);
@@ -68,6 +71,10 @@ public class ContenidoService {
                 .orElseThrow(() -> new RecursoNoEncontradoException("Cliente", clienteId));
 
         TipoContenido tipo = deducirTipo(archivo.getContentType());
+        if (tipo == TipoContenido.VIDEO) {
+            validarDuracion(duracionSegundos);
+        }
+
         String nombreOriginal = archivo.getOriginalFilename();
         String nombreEnDisco = UUID.randomUUID() + extensionDe(nombreOriginal);
         Path destino = directorioStorage.resolve(nombreEnDisco);
@@ -89,6 +96,29 @@ public class ContenidoService {
                 .build();
 
         return toResponse(contenidoRepository.save(contenido));
+    }
+
+    /**
+     * Un video largo pesa mucho: tarda en llegar a cada pantalla, ocupa el
+     * disco del TV Box y deja mas tiempo la cartelera mostrando lo mismo.
+     *
+     * La duracion la mide el panel al elegir el archivo y la manda al subir. El
+     * backend no puede medirla solo: leer la de un MP4 necesita una libreria de
+     * video. Por eso es obligatoria para los videos, aunque venga del cliente.
+     */
+    private void validarDuracion(Long duracionSegundos) {
+        if (duracionSegundos == null) {
+            throw new ReglaNegocioException(
+                    "Falta la duracion del video. Subilo desde el panel, que la mide sola.");
+        }
+        if (duracionSegundos < 1) {
+            throw new ReglaNegocioException("La duracion del video no es valida");
+        }
+        if (duracionSegundos > duracionMaximaVideo) {
+            throw new ReglaNegocioException("El video dura " + duracionSegundos
+                    + " segundos y el maximo es " + duracionMaximaVideo
+                    + ". Recortalo antes de subirlo.");
+        }
     }
 
     @Transactional(readOnly = true)

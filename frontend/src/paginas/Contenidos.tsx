@@ -5,6 +5,13 @@ import { useClientes } from "../hooks/useClientes";
 import ImagenProtegida from "../componentes/ImagenProtegida";
 import VistaPrevia from "../componentes/VistaPrevia";
 
+/**
+ * Tope acordado para los videos. Tiene que coincidir con
+ * signage.contenido.duracion-maxima-video del backend, que es quien lo hace
+ * cumplir; acá está para avisar antes de subir 300 MB en vano.
+ */
+const DURACION_MAXIMA_VIDEO = 120;
+
 /** Biblioteca de archivos de un cliente: subir, renombrar y dar de baja. */
 export default function Contenidos() {
   const { clientes, clienteId, setClienteId, cargando } = useClientes();
@@ -16,6 +23,11 @@ export default function Contenidos() {
   const [error, setError] = useState<string | null>(null);
   const inputArchivo = useRef<HTMLInputElement>(null);
   const [previsualizando, setPrevisualizando] = useState<Contenido | null>(null);
+  const [duracion, setDuracion] = useState<number | null>(null);
+  const [midiendo, setMidiendo] = useState(false);
+
+  const esVideo = archivo?.type.startsWith("video/") ?? false;
+  const muyLargo = duracion !== null && duracion > DURACION_MAXIMA_VIDEO;
 
   useEffect(() => {
     if (clienteId === null) return;
@@ -31,9 +43,34 @@ export default function Contenidos() {
     );
   }
 
+  /**
+   * Mide el video en el navegador, antes de subirlo.
+   *
+   * Es el único lugar donde se puede: el backend tendría que leer el MP4 con
+   * una librería de video, y subir 300 MB para después rechazarlos sería
+   * perder varios minutos.
+   */
+  async function elegirArchivo(nuevo: File | null) {
+    setArchivo(nuevo);
+    setDuracion(null);
+    setError(null);
+    if (!nuevo || !nuevo.type.startsWith("video/")) return;
+
+    setMidiendo(true);
+    try {
+      setDuracion(await medirDuracion(nuevo));
+    } catch {
+      setError(
+        "No se pudo leer la duración del video. Puede estar dañado o en un formato que el navegador no abre.",
+      );
+    } finally {
+      setMidiendo(false);
+    }
+  }
+
   async function subir(e: FormEvent) {
     e.preventDefault();
-    if (!archivo || clienteId === null) return;
+    if (!archivo || clienteId === null || muyLargo) return;
 
     setError(null);
     setSubiendo(true);
@@ -43,13 +80,20 @@ export default function Contenidos() {
 
       // nombre y clienteId van como query: el endpoint recibe el archivo por
       // multipart y el resto como parametros.
+      const parametros = new URLSearchParams({
+        nombre: nombre || archivo.name,
+        clienteId: String(clienteId),
+      });
+      if (duracion !== null) parametros.set("duracionSegundos", String(duracion));
+
       const creado = await api.subir<Contenido>(
-        `/api/contenidos?nombre=${encodeURIComponent(nombre || archivo.name)}&clienteId=${clienteId}`,
+        `/api/contenidos?${parametros}`,
         formulario,
       );
       setContenidos((previos) => [...previos, creado]);
       setNombre("");
       setArchivo(null);
+      setDuracion(null);
       if (inputArchivo.current) inputArchivo.current.value = "";
     } catch (err) {
       mostrarError(err);
@@ -122,15 +166,27 @@ export default function Contenidos() {
             ref={inputArchivo}
             type="file"
             accept="video/*,image/*"
-            onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
+            onChange={(e) => elegirArchivo(e.target.files?.[0] ?? null)}
             required
           />
         </label>
 
-        <button type="submit" disabled={subiendo || !archivo}>
+        <button type="submit" disabled={subiendo || midiendo || !archivo || muyLargo}>
           {subiendo ? "Subiendo…" : "Subir"}
         </button>
       </form>
+
+      {esVideo && (
+        <p className={muyLargo ? "error" : "sutil ayuda"}>
+          {midiendo
+            ? "Midiendo la duración del video…"
+            : muyLargo
+              ? `El video dura ${formatearDuracion(duracion!)} y el máximo es ${formatearDuracion(DURACION_MAXIMA_VIDEO)}. Recortalo antes de subirlo: un video largo pesa mucho, tarda en llegar a cada pantalla y ocupa el disco del dispositivo.`
+              : duracion !== null
+                ? `Duración: ${formatearDuracion(duracion)}. El máximo es ${formatearDuracion(DURACION_MAXIMA_VIDEO)}.`
+                : `Los videos pueden durar hasta ${formatearDuracion(DURACION_MAXIMA_VIDEO)}.`}
+        </p>
+      )}
 
       {contenidos.length === 0 ? (
         <div className="tarjeta vacio">
@@ -144,6 +200,7 @@ export default function Contenidos() {
               <th>Nombre</th>
               <th>Tipo</th>
               <th>Archivo</th>
+              <th>Duración</th>
               <th>Tamaño</th>
               <th></th>
             </tr>
@@ -171,6 +228,9 @@ export default function Contenidos() {
                   <span className="etiqueta">{c.tipo}</span>
                 </td>
                 <td className="sutil mono">{c.nombreArchivo}</td>
+                <td className="sutil">
+                  {c.duracionSegundos === null ? "—" : formatearDuracion(c.duracionSegundos)}
+                </td>
                 <td className="sutil">{formatearTamano(c.tamanoBytes)}</td>
                 <td>
                   <button className="secundario" onClick={() => desactivar(c.id)}>
@@ -191,6 +251,41 @@ export default function Contenidos() {
       )}
     </>
   );
+}
+
+/**
+ * Lee la duración del video sin subirlo: el navegador solo necesita los
+ * primeros bytes del archivo para conocer su metadata.
+ */
+function medirDuracion(archivo: File): Promise<number> {
+  return new Promise((resolver, rechazar) => {
+    const url = URL.createObjectURL(archivo);
+    const video = document.createElement("video");
+    video.preload = "metadata";
+
+    const limpiar = () => URL.revokeObjectURL(url);
+
+    video.onloadedmetadata = () => {
+      limpiar();
+      // Un video de 30,2 segundos se cuenta como 31: recortar para abajo
+      // dejaría pasar uno que en realidad supera el máximo.
+      if (!Number.isFinite(video.duration)) rechazar(new Error("duración desconocida"));
+      else resolver(Math.ceil(video.duration));
+    };
+    video.onerror = () => {
+      limpiar();
+      rechazar(new Error("no se pudo leer el video"));
+    };
+
+    video.src = url;
+  });
+}
+
+function formatearDuracion(segundos: number) {
+  if (segundos < 60) return `${segundos} s`;
+  const minutos = Math.floor(segundos / 60);
+  const resto = segundos % 60;
+  return resto === 0 ? `${minutos} min` : `${minutos} min ${resto} s`;
 }
 
 function formatearTamano(bytes: number) {
