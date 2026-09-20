@@ -116,7 +116,7 @@ git checkout develop && git pull
 | Un token de pantalla no expira | Vale hasta que se regenere a mano. Alcanza para el MVP; una rotación automática es de V2 |
 | Sin índices en las columnas FK | PostgreSQL no los crea solo. Se va a notar cuando haya volumen (Etapa 9) |
 | `ddl-auto=update` | No borra columnas ni renombra. Producción necesita migraciones versionadas (Etapa 9) |
-| Los videos no se miden en el backend | El panel mide la duración antes de subir y el backend valida el número que le mandan. Alguien que llame la API a mano puede declarar cualquier duración. Medirla de verdad necesita una librería de video |
+| Los videos no se miden en el backend | El panel mide la duración antes de subir y el backend valida el número que le mandan. Alguien que llame la API a mano puede declarar cualquier duración; el tope de peso (200 MB por video, 20 MB por imagen) sí lo verifica el servidor. Medir la duración de verdad necesita una librería de video |
 | Sin tests de services ni controllers | Los 5 que hay cubren solo el mapeo de entidades |
 | Cambiar una contraseña no cierra las sesiones abiertas | El JWT sigue valiendo hasta que vence (8 h). La baja de un usuario sí corta el acceso en el acto |
 | Un usuario no puede cambiarse su propia contraseña | Hoy la cambia un SUPER_ADMIN desde Usuarios |

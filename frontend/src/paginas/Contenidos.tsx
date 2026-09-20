@@ -12,6 +12,13 @@ import VistaPrevia from "../componentes/VistaPrevia";
  */
 const DURACION_MAXIMA_VIDEO = 120;
 
+/**
+ * Peso maximo por archivo, en MB. También tiene que coincidir con el backend
+ * (signage.contenido.tamano-maximo-*-mb), que es quien lo hace cumplir. A
+ * diferencia de la duración, este tope el servidor lo verifica solo.
+ */
+const TAMANO_MAXIMO_MB = { video: 200, imagen: 20 };
+
 /** Biblioteca de archivos de un cliente: subir, renombrar y dar de baja. */
 export default function Contenidos() {
   const { clientes, clienteId, setClienteId, cargando } = useClientes();
@@ -28,6 +35,8 @@ export default function Contenidos() {
 
   const esVideo = archivo?.type.startsWith("video/") ?? false;
   const muyLargo = duracion !== null && duracion > DURACION_MAXIMA_VIDEO;
+  const maximoMb = esVideo ? TAMANO_MAXIMO_MB.video : TAMANO_MAXIMO_MB.imagen;
+  const muyPesado = archivo !== null && archivo.size > maximoMb * 1024 * 1024;
 
   useEffect(() => {
     if (clienteId === null) return;
@@ -70,7 +79,7 @@ export default function Contenidos() {
 
   async function subir(e: FormEvent) {
     e.preventDefault();
-    if (!archivo || clienteId === null || muyLargo) return;
+    if (!archivo || clienteId === null || muyLargo || muyPesado) return;
 
     setError(null);
     setSubiendo(true);
@@ -171,10 +180,21 @@ export default function Contenidos() {
           />
         </label>
 
-        <button type="submit" disabled={subiendo || midiendo || !archivo || muyLargo}>
+        <button
+          type="submit"
+          disabled={subiendo || midiendo || !archivo || muyLargo || muyPesado}
+        >
           {subiendo ? "Subiendo…" : "Subir"}
         </button>
       </form>
+
+      {muyPesado && (
+        <p className="error">
+          El archivo pesa {formatearTamano(archivo!.size)} y el máximo para{" "}
+          {esVideo ? "un video" : "una imagen"} es {maximoMb} MB. Comprimilo antes de
+          subirlo: cada pantalla tiene que descargarlo entero.
+        </p>
+      )}
 
       {esVideo && (
         <p className={muyLargo ? "error" : "sutil ayuda"}>
@@ -183,8 +203,8 @@ export default function Contenidos() {
             : muyLargo
               ? `El video dura ${formatearDuracion(duracion!)} y el máximo es ${formatearDuracion(DURACION_MAXIMA_VIDEO)}. Recortalo antes de subirlo: un video largo pesa mucho, tarda en llegar a cada pantalla y ocupa el disco del dispositivo.`
               : duracion !== null
-                ? `Duración: ${formatearDuracion(duracion)}. El máximo es ${formatearDuracion(DURACION_MAXIMA_VIDEO)}.`
-                : `Los videos pueden durar hasta ${formatearDuracion(DURACION_MAXIMA_VIDEO)}.`}
+                ? `Duración: ${formatearDuracion(duracion)}. El máximo es ${formatearDuracion(DURACION_MAXIMA_VIDEO)} y ${TAMANO_MAXIMO_MB.video} MB.`
+                : `Los videos pueden durar hasta ${formatearDuracion(DURACION_MAXIMA_VIDEO)} y pesar hasta ${TAMANO_MAXIMO_MB.video} MB.`}
         </p>
       )}
 

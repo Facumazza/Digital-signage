@@ -34,16 +34,24 @@ public class ContenidoService {
     private final ControlAcceso controlAcceso;
     private final Path directorioStorage;
     private final long duracionMaximaVideo;
+    private final long tamanoMaximoVideoMb;
+    private final long tamanoMaximoImagenMb;
+
+    private static final long UN_MB = 1024L * 1024L;
 
     public ContenidoService(ContenidoRepository contenidoRepository,
                             ClienteRepository clienteRepository,
                             ControlAcceso controlAcceso,
                             @Value("${signage.storage.ruta}") String rutaStorage,
-                            @Value("${signage.contenido.duracion-maxima-video}") long duracionMaximaVideo) {
+                            @Value("${signage.contenido.duracion-maxima-video}") long duracionMaximaVideo,
+                            @Value("${signage.contenido.tamano-maximo-video-mb}") long tamanoMaximoVideoMb,
+                            @Value("${signage.contenido.tamano-maximo-imagen-mb}") long tamanoMaximoImagenMb) {
         this.contenidoRepository = contenidoRepository;
         this.clienteRepository = clienteRepository;
         this.controlAcceso = controlAcceso;
         this.duracionMaximaVideo = duracionMaximaVideo;
+        this.tamanoMaximoVideoMb = tamanoMaximoVideoMb;
+        this.tamanoMaximoImagenMb = tamanoMaximoImagenMb;
         this.directorioStorage = Path.of(rutaStorage).toAbsolutePath().normalize();
         try {
             Files.createDirectories(this.directorioStorage);
@@ -74,6 +82,7 @@ public class ContenidoService {
         if (tipo == TipoContenido.VIDEO) {
             validarDuracion(duracionSegundos);
         }
+        validarTamano(tipo, archivo.getSize());
 
         String nombreOriginal = archivo.getOriginalFilename();
         String nombreEnDisco = UUID.randomUUID() + extensionDe(nombreOriginal);
@@ -118,6 +127,20 @@ public class ContenidoService {
             throw new ReglaNegocioException("El video dura " + duracionSegundos
                     + " segundos y el maximo es " + duracionMaximaVideo
                     + ". Recortalo antes de subirlo.");
+        }
+    }
+
+    /**
+     * Peso maximo por archivo. Esto el servidor si lo verifica solo, a
+     * diferencia de la duracion: es el tope que no se puede esquivar llamando
+     * la API a mano.
+     */
+    private void validarTamano(TipoContenido tipo, long bytes) {
+        long maximoMb = tipo == TipoContenido.VIDEO ? tamanoMaximoVideoMb : tamanoMaximoImagenMb;
+        if (bytes > maximoMb * UN_MB) {
+            throw new ReglaNegocioException("El archivo pesa " + (bytes / UN_MB)
+                    + " MB y el maximo para " + (tipo == TipoContenido.VIDEO ? "un video" : "una imagen")
+                    + " es " + maximoMb + " MB");
         }
     }
 

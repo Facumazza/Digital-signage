@@ -8,6 +8,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -52,6 +53,17 @@ public class ManejadorGlobalExcepciones {
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ErrorResponseDto> sinPermiso(AccessDeniedException ex) {
         return construir(HttpStatus.FORBIDDEN, "No tenes permiso para esta operacion", null);
+    }
+
+    /**
+     * El archivo supera el limite de multipart de Spring, que corta la subida
+     * antes de que llegue al service. Sin este manejador terminaba en un 500
+     * con stacktrace y el panel mostraba "error del servidor".
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponseDto> archivoDemasiadoGrande(MaxUploadSizeExceededException ex) {
+        return construir(HttpStatus.PAYLOAD_TOO_LARGE,
+                "El archivo es demasiado grande para subirlo", null);
     }
 
     /** Se dispara cuando falla una validacion @Valid del DTO de entrada. */
