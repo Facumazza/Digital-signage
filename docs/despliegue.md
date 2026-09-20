@@ -5,13 +5,18 @@ que las pantallas funcionen desde cualquier lado.
 
 | Parte | Dónde | Por qué |
 | --- | --- | --- |
-| Panel React | Vercel | Son archivos estáticos: los sirve con HTTPS y se actualizan solos con cada push |
+| Panel React | Cloudflare Pages | Son archivos estáticos: los sirve con HTTPS y se actualizan solos con cada push |
 | Backend + PostgreSQL | Railway | Necesita estar siempre prendido, con base de datos y disco |
 | Dominio y DNS | Cloudflare | Apunta cada nombre a donde corresponde |
 
+**Por qué Pages y no Vercel:** el plan gratuito de Vercel es para uso no
+comercial, así que facturándole a un cliente correspondería el plan pago. Pages
+sirve lo mismo, permite uso comercial y es gratis, y el dominio ya va a estar
+en Cloudflare. Para el panel no cambia nada: son los mismos archivos.
+
 Los archivos de configuración ya están en el repo: `backend/Dockerfile`,
-`backend/railway.json` y `frontend/vercel.json`. Lo que falta es crear las
-cuentas y cargar las variables.
+`backend/railway.json` y `frontend/public/_redirects`. Lo que falta es crear
+las cuentas y cargar las variables.
 
 **Antes de arrancar, dos cosas que rompen este stack** (están resueltas en los
 pasos 3.3 y 5.2, pero conviene saberlas desde ahora):
@@ -43,13 +48,21 @@ Alternativa: crear otra cuenta de Railway con otro mail. Queda más separado,
 pero son dos cuentas para mantener y hay que invitar a Lucas por separado. Con
 el workspace alcanza.
 
-**Sobre los costos.** Railway cobra por uso y el precio cambia seguido, así que
-convienen mirarlo en su página antes de cargar la tarjeta. Este proyecto son
-tres cosas que consumen: el backend, la base y el disco. El disco es el que más
-crece con el tiempo, porque los videos se acumulan. Vercel y Cloudflare, para
-lo que necesitamos, tienen plan gratuito; tengan en cuenta que el plan gratis
-de Vercel es para uso no comercial, así que cuando le facturen a un cliente hay
-que mirar si corresponde pasar al plan pago.
+Ojo con sumar a Lucas al workspace: en Railway los equipos requieren el plan
+por persona, así que mientras prueban conviene que el workspace sea de uno
+solo y sumarlo cuando haga falta de verdad.
+
+**Sobre los costos.** Railway es lo único que se paga: Cloudflare, para lo que
+necesitamos (DNS y Pages), es gratis. Cobra por uso y el precio cambia seguido,
+así que conviene mirarlo en su página antes de cargar la tarjeta. A septiembre
+de 2026: US$ 10 por GB de memoria al mes, US$ 20 por vCPU al mes, US$ 0,15 por
+GB de disco al mes y US$ 0,05 por GB de salida de datos, con un plan de US$ 5
+mensuales que incluye US$ 5 de consumo.
+
+Para este proyecto, con pocas pantallas, eso da entre US$ 10 y 14 por mes:
+backend, base, y disco para los videos. **Lo que más crece con el tiempo es el
+disco**, porque el servidor guarda todos los contenidos para siempre, aunque
+las pantallas ya no los usen.
 
 ---
 
@@ -62,15 +75,18 @@ tanto se avanza con el resto.
    otro lado, agregarlo en Cloudflare y cambiar los nameservers donde lo
    compraron.
 2. Los dos nombres que vamos a usar:
-   - `panel.grenlus.com.ar` → el panel, en Vercel
+   - `panel.grenlus.com.ar` → el panel, en Cloudflare Pages
    - `api.grenlus.com.ar` → el backend, en Railway
-3. Los registros DNS se crean recién en el paso 5, cuando existan las
-   direcciones de Vercel y Railway.
+3. Los nombres se conectan en el paso 5, cuando existan los dos servicios.
+
+Si el dominio va a ser `.com.ar`, se registra en NIC Argentina y se paga en
+pesos: Cloudflare no registra esa terminación, pero igual se usa su DNS gratis
+cambiando los nameservers donde lo compraron.
 
 Si todavía no tienen dominio, se puede desplegar igual con las direcciones que
-dan Vercel y Railway, y agregarlo después sin rehacer nada. Lo único que hay
-que tocar al cambiarlas es `VITE_API_URL`, `SIGNAGE_CORS_ORIGENES` y la
-dirección del servidor en cada pantalla.
+dan Pages y Railway, y agregarlo después sin rehacer nada. Lo único que hay que
+tocar al cambiarlas es `VITE_API_URL`, `SIGNAGE_CORS_ORIGENES` y la dirección
+del servidor en cada pantalla.
 
 ---
 
@@ -145,17 +161,34 @@ Directory sin poner y alguna variable de la base mal escrita.
 
 ---
 
-## 4. Vercel: el panel
+## 4. Cloudflare Pages: el panel
 
-1. **Add New → Project → importar `Digital-signage`**.
-2. **Root Directory**: `frontend`. El `vercel.json` ya indica el framework y
-   manda todas las rutas a `index.html`; sin eso, entrar directo a `/pantallas`
-   o recargar esa página da 404, porque las rutas las resuelve React en el
-   navegador.
-3. **Environment Variables**: `VITE_API_URL` con la dirección del backend, sin
-   barra final. Al principio la de Railway; después, `https://api.grenlus.com.ar`.
-   Se usa **al compilar**: si la cambian, hay que volver a desplegar el panel.
-4. Deploy. Va a quedar en una dirección tipo `grenlus.vercel.app`.
+En el panel de Cloudflare: **Workers & Pages → Create → Pages → Connect to Git**
+y elegir `Digital-signage`.
+
+Configuración de build:
+
+| Campo | Valor |
+| --- | --- |
+| Framework preset | Vite |
+| Build command | `npm run build` |
+| Build output directory | `dist` |
+| Root directory | `frontend` |
+
+El **Root directory** es clave: sin eso busca el `package.json` en la raíz del
+repo y el build falla.
+
+Antes de dar Deploy, agregar la variable **`VITE_API_URL`** con la dirección del
+backend, sin barra final: al principio la de Railway y después
+`https://api.grenlus.com.ar`. Se usa **al compilar**, no al ejecutar: si la
+cambian, hay que volver a desplegar el panel (Deployments → Retry deployment).
+
+Queda publicado en una dirección tipo `grenlus.pages.dev`. Cada push a `main`
+genera un deploy nuevo solo.
+
+Las rutas del panel (`/pantallas`, `/clientes`) las resuelve React en el
+navegador y no existen como archivos: `frontend/public/_redirects` hace que
+todas sirvan `index.html`, así entrar directo a una o recargarla no da 404.
 
 ### 4.3 Habilitar el panel en el backend
 
@@ -170,7 +203,7 @@ Mientras prueban con las direcciones provisorias, pueden poner las dos
 separadas por coma:
 
 ```
-https://grenlus.vercel.app,https://panel.grenlus.com.ar
+https://grenlus.pages.dev,https://panel.grenlus.com.ar
 ```
 
 Sin esto el navegador bloquea las llamadas al backend y el panel se ve pero no
@@ -180,30 +213,32 @@ carga nada. Al guardar la variable, Railway reinicia el backend solo.
 
 ## 5. Conectar el dominio
 
-### 5.1 Decirle a cada servicio cuál es su nombre
+### 5.1 El panel
 
-- En **Vercel**: Project → Settings → Domains → agregar `panel.grenlus.com.ar`.
-- En **Railway**: servicio del backend → Settings → Networking → Custom Domain →
-  `api.grenlus.com.ar`.
+En el proyecto de Pages: **Custom domains → Set up a custom domain** →
+`panel.grenlus.com.ar`. Como el dominio está en la misma cuenta, Cloudflare crea
+el registro DNS y el certificado solo.
 
-Cada uno indica qué registro CNAME hay que crear.
+### 5.2 El backend
 
-### 5.2 Crear los registros en Cloudflare
+1. En **Railway**: servicio del backend → Settings → Networking → Custom Domain →
+   `api.grenlus.com.ar`. Ahí indica qué CNAME hay que crear.
+2. En **Cloudflare → DNS**, crear ese registro:
 
 | Nombre | Tipo | Apunta a | Proxy |
 | --- | --- | --- | --- |
-| `panel` | CNAME | lo que indique Vercel | Naranja (proxy activado) |
 | `api` | CNAME | lo que indique Railway | **Gris (DNS only)** |
 
 **El de `api` va en gris.** Con la nubecita naranja, Cloudflare corta las
 subidas de más de 100 MB y no van a poder subir videos grandes desde el panel.
-En gris el tráfico va directo a Railway, que igual sirve todo por HTTPS.
+En gris el tráfico va directo a Railway, que igual sirve todo por HTTPS. El
+panel sí puede ir con proxy: por ahí no pasa ningún archivo pesado.
 
 En **SSL/TLS → Overview**, dejar el modo en **Full (strict)**.
 
 ### 5.3 Cerrar el círculo
 
-1. En Vercel, cambiar `VITE_API_URL` a `https://api.grenlus.com.ar` y volver a
+1. En Pages, cambiar `VITE_API_URL` a `https://api.grenlus.com.ar` y volver a
    desplegar.
 2. En Railway, dejar `SIGNAGE_CORS_ORIGENES` en `https://panel.grenlus.com.ar`.
 3. Entrar al panel, iniciar sesión y verificar que cargue clientes y pantallas.

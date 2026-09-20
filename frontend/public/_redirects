@@ -1,0 +1,9 @@
+# Cloudflare Pages: todas las rutas sirven index.html.
+#
+# Las rutas del panel (/pantallas, /clientes, ...) las resuelve React en el
+# navegador, no existen como archivos. Sin esto, entrar directo a una o
+# recargarla daria 404.
+#
+# Pages ya se comporta asi cuando el sitio no tiene un 404.html, que es
+# nuestro caso; queda explicito para que no dependa de ese detalle.
+/*    /index.html   200
