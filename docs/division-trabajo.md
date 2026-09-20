@@ -27,7 +27,7 @@ reproduce.
 | 5 — Android mínimo | ✅ |
 | 6 — Sincronización: varios contenidos, imágenes, caché y versión | ✅ |
 | 7 — Control web | ✅ clientes, usuarios, sucursales, pantallas, contenidos, playlists |
-| 8 — Prueba entre dos redes | ❌ el backend solo corre en la LAN |
+| 8 — Prueba entre dos redes | ⚠️ la configuración para desplegar está lista ([despliegue.md](despliegue.md)); falta crear las cuentas y subirlo |
 | 9 — Robustez | ⚠️ el modo offline está programado pero nunca se probó cortando la red |
 | 10 — Seguridad: JWT, roles y tokens de dispositivo | ✅ |
 | 11 — Producto | ⚠️ autoarranque del player hecho; falta kiosco, despliegue, backups y monitoreo |

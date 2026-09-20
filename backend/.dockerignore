@@ -1,0 +1,6 @@
+# Lo que no tiene que viajar al build: acelera el deploy y evita subir
+# archivos de clientes o configuracion local al servidor.
+target/
+uploads/
+src/main/resources/application-local.properties
+.git/

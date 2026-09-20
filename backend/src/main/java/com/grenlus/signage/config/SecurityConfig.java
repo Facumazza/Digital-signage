@@ -49,6 +49,10 @@ public class SecurityConfig {
 
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                        // El hosting lo consulta para saber si el deploy quedo
+                        // sano, y no tiene con que autenticarse.
+                        .requestMatchers("/api/salud").permitAll()
+
                         // Cuando un endpoint protegido devuelve 404 o 500, Spring
                         // reenvia a /error. Si /error tambien exige autenticacion,
                         // ese reenvio vuelve como 401 y tapa el error real.
